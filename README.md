@@ -19,8 +19,11 @@ Glorya already knows your brand (logo, colors, fonts, products and language), so
 ## Install
 
 ```bash
-hermes plugins install glorya        # from the Hermes plugin catalog
-hermes glorya setup                  # connect Glorya and grant what the plugin needs
+hermes plugins install glorya --enable    # from the Hermes plugin catalog, once listed
+# or straight from this repo:
+hermes plugins install Glorya-AI/hermes-plugin --enable
+
+hermes glorya setup                       # connect Glorya and grant what the plugin needs
 hermes gateway restart
 ```
 
