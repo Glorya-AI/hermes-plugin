@@ -38,15 +38,22 @@ def _plugin_db():
 
 
 class GloryaPlugin:
-    def __init__(self, ctx: Any, *, store: Optional[Store] = None, data_dir: Callable[[], Path] = _plugin_data_dir,
+    def __init__(self, ctx: Any, *, store: Optional[Store] = None, data_dir: Optional[Callable[[], Path]] = None,
                  clock: Callable[[], float] = time.time, follower: Optional[Follower] = None,
                  session: Callable[..., Any] = current_session, fetch: Callable[..., Any] = media.fetch_assets):
         self.ctx = ctx
         self.clock = clock
-        self.data_dir = data_dir
         self.session = session
         self.fetch = fetch
-        self.store = store or Store(_plugin_db, clock=clock)
+        if data_dir is None:
+            # Resolved now, while this profile's home is active: a multiplexed gateway runs several.
+            root = _plugin_data_dir()
+            data_dir = lambda: root  # noqa: E731
+        self.data_dir = data_dir
+        if store is None:
+            connection = _plugin_db()
+            store = Store(lambda: connection, clock=clock)
+        self.store = store
         self.follower = follower or Follower(ctx, self.store, self.settings, self.glorya, data_dir, clock=clock,
                                              session=session, fetch=fetch)
 
