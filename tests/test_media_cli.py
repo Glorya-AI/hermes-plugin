@@ -91,7 +91,7 @@ def test_setup_runs_only_what_the_user_accepts():
     ran, out = [], []
     answers = iter(["y", "y", "n", "y", "n"])
     cli.setup(interactive=True, run=lambda argv: ran.append(argv[1:]) or 0, read=lambda _q: next(answers),
-              load=lambda: {}, out=out.append)
+              load=lambda: {}, out=out.append, hermes=["hermes"])
     assert ran == [["plugins", "enable", "glorya"],
                    ["mcp", "add", "glorya", "--url", "https://platform.glorya.ai/mcp", "--auth", "oauth"],
                    ["config", "set", "plugins.entries.glorya.allow_gateway_injection", "true"]]

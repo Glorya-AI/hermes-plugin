@@ -73,9 +73,10 @@ def _ask(question: str, default: bool, read: Callable[[str], str]) -> bool:
 
 
 def setup(*, interactive: Optional[bool] = None, run: Runner = _run, read: Callable[[str], str] = input,
-          load: Callable[[], dict[str, Any]] = _load_config, out: Callable[[str], None] = print) -> int:
+          load: Callable[[], dict[str, Any]] = _load_config, out: Callable[[str], None] = print,
+          hermes: Optional[list[str]] = None) -> int:
     interactive = sys.stdin.isatty() if interactive is None else interactive
-    hermes = _hermes()
+    hermes = hermes or _hermes()
     config = load()
     steps = check(config)
     server = server_name(config)
