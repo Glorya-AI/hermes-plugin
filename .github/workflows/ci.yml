@@ -1,0 +1,20 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # The plugin is a Python package; its folder must have a valid package name.
+      - uses: actions/checkout@v4
+        with:
+          path: glorya
+      - uses: astral-sh/setup-uv@v6
+      - name: Tests
+        working-directory: glorya
+        run: uv run --no-project --python 3.12 --with 'pytest>=8,<9' python -m pytest -q
+      - name: Desktop plugin parses
+        working-directory: glorya
+        run: node --check desktop/plugin.js

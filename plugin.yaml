@@ -1,0 +1,45 @@
+name: glorya
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: >-
+  On-brand image ads, video ads, landing pages and websites from Glorya, right in your chat. Glorya
+  jobs run in the background: the plugin follows them, updates one progress message, relays Glorya's
+  questions and posts the finished videos and images into the chat that asked.
+author: Glorya
+license: MIT
+homepage: https://github.com/Glorya-AI/hermes-plugin
+requires_hermes: ">=0.22.5"
+tags: [marketing, ads, video, images, landing-pages, mcp]
+provides_tools:
+  - glorya_attach
+  - glorya_jobs
+provides_hooks:
+  - transform_tool_result
+  - pre_llm_call
+config_schema:
+  server:
+    type: str
+    default: glorya
+    label: MCP server name
+    description: The mcp_servers entry that points at https://platform.glorya.ai/mcp.
+  follow:
+    type: bool
+    default: true
+    label: Follow jobs in the background
+    description: Post progress, questions and results in the chat instead of having the model poll.
+  deliver:
+    type: str
+    choices: [attach, links]
+    default: attach
+    label: Finished files
+    description: "attach: send videos and images as chat attachments (needs allow_gateway_injection). links: post their links."
+  attach_max_mb:
+    type: int
+    default: 45
+    label: Largest file to attach (MB)
+    description: Bigger files are shared as links. Telegram bots can upload up to 50 MB.
+  follow_minutes:
+    type: int
+    default: 90
+    label: Stop following after (minutes)

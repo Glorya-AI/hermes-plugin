@@ -1,0 +1,12 @@
+{
+  "name": "glorya",
+  "label": "Glorya",
+  "description": "Backend for Glorya Studio in Hermes Desktop: the Glorya jobs this profile follows.",
+  "icon": "Sparkles",
+  "version": "0.1.0",
+  "tab": {
+    "path": "/glorya",
+    "hidden": true
+  },
+  "api": "plugin_api.py"
+}
