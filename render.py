@@ -97,6 +97,7 @@ def result_links(view: dict[str, Any]) -> str:
         lines.append(campaign_line(campaign))
         if campaign.get("manage_url"):
             lines.append(f"Manage: {campaign['manage_url']}")
+        lines.append("Live status, spend and results: /glorya campaigns")
     site = view.get("site") if isinstance(view.get("site"), dict) else None
     if site:
         if site.get("live_url"):
@@ -131,7 +132,9 @@ def campaign_line(campaign: dict[str, Any]) -> str:
     budget = campaign.get("daily_budget")
     money = f" · {budget} {campaign.get('currency') or ''}/day".rstrip() if budget else ""
     name = clip(campaign.get("name"), 60)
-    return f"{platform}{f' · {name}' if name else ''} · {campaign.get('status') or 'unknown'}{money}"
+    # list_campaigns rows carry the live status; get_job's campaign carries the draft stage.
+    state = campaign.get("status") or campaign.get("stage") or "unknown"
+    return f"{platform}{f' · {name}' if name else ''} · {state}{money}"
 
 
 def money(value: Any, currency: Any) -> str:

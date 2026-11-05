@@ -108,15 +108,15 @@ def test_following_a_finished_job_sends_its_files(glorya, plugin, ctx):
 def test_campaign_command_passes_platform_and_budget(glorya, plugin, ctx):
     ctx.script("create_campaign", created("campaign"))
     ctx.script("get_job", mcp_ok(view("completed", kind="campaign", campaign={
-        "platform": "meta", "status": "active", "name": "Serum launch", "daily_budget": 30, "currency": "EUR",
-        "campaign_id": "c1", "manage_url": "https://business.facebook.com/x"})))
+        "platform": "meta", "stage": "ready", "daily_budget": 30, "currency": "EUR", "ad_account_id": "act_1",
+        "campaign_id": None, "manage_url": "https://platform.glorya.ai/v2/app/w/ws-1/campaigns"})))
     reply = glorya("campaign --platform meta --budget 40 new serum, women 25-45", session_key=KEY)
     join_followers(plugin)
     assert ctx.calls[0] == ("glorya", "create_campaign",
                             {"brief": "new serum, women 25-45", "platform": "meta", "daily_budget": 40})
     assert "Ad campaign started" in reply
-    assert "Meta · Serum launch · active · 30 EUR/day" in ctx.posts[-1]
-    assert "Manage: https://business.facebook.com/x" in ctx.posts[-1]
+    assert "Meta · ready · 30 EUR/day" in ctx.posts[-1]
+    assert "Manage: https://platform.glorya.ai/v2/app/w/ws-1/campaigns" in ctx.posts[-1]
 
 
 def test_campaign_budget_must_be_a_number(glorya, ctx):
