@@ -15,14 +15,16 @@ from .commands import Commands
 from .core import ATTACH_SCHEMA, JOBS_SCHEMA, GloryaPlugin
 
 _HERE = Path(__file__).parent
+TOOLSET = "glorya-plugin"
 
 
 def register(ctx) -> None:
     plugin = GloryaPlugin(ctx)
     ctx.register_hook("transform_tool_result", plugin.on_transform_tool_result)
     ctx.register_hook("pre_llm_call", plugin.on_pre_llm_call)
-    ctx.register_tool(name="glorya_attach", toolset="glorya", schema=ATTACH_SCHEMA, handler=plugin.tool_attach)
-    ctx.register_tool(name="glorya_jobs", toolset="glorya", schema=JOBS_SCHEMA, handler=plugin.tool_jobs)
+    # Not "glorya": a plugin toolset with the MCP server's name hides that server's mcp__glorya__ tools.
+    ctx.register_tool(name="glorya_attach", toolset=TOOLSET, schema=ATTACH_SCHEMA, handler=plugin.tool_attach)
+    ctx.register_tool(name="glorya_jobs", toolset=TOOLSET, schema=JOBS_SCHEMA, handler=plugin.tool_jobs)
     ctx.register_command("glorya", Commands(plugin), description="Glorya: make on-brand ads and pages, follow jobs",
                          args_hint="image|video|page|site <brief> · jobs · answer · refine · publish · cancel")
     ctx.register_cli_command(name="glorya", help="Set up and check the Glorya plugin",

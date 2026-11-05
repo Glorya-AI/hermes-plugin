@@ -147,3 +147,10 @@ def test_housekeeping_prunes_old_jobs_and_files(plugin, store, clock, tmp_path):
     plugin.housekeep()
     assert store.get("old-job-000") is None and store.get("new-job-000") is not None
     assert not (tmp_path / "media" / "old-job-000").exists()
+
+
+def test_plugin_tools_never_share_the_mcp_servers_toolset_name():
+    from glorya_plugin import TOOLSET
+    from glorya_plugin.settings import Settings
+
+    assert TOOLSET != Settings().server and not TOOLSET.startswith("mcp-")
