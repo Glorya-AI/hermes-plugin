@@ -137,6 +137,18 @@ class Glorya:
     def brand(self) -> dict[str, Any]:
         return self.call("get_brand")
 
+    def credits(self) -> dict[str, Any]:
+        return self.call("get_credits")
+
+    def integrations(self) -> dict[str, Any]:
+        return self.call("get_integrations")
+
+    def campaigns(self, **filters: Any) -> dict[str, Any]:
+        return self.call("list_campaigns", filters)
+
+    def sites(self, **filters: Any) -> dict[str, Any]:
+        return self.call("list_sites", filters)
+
     def formats(self) -> dict[str, Any]:
         return self.call("list_video_formats")
 
@@ -146,6 +158,7 @@ CREATE_TOOLS = {
     "video_ad": "create_video_ad",
     "landing_page": "create_landing_page",
     "website": "create_website",
+    "campaign": "create_campaign",
 }
 
 # Tools whose result starts (or restarts) work on a job the plugin can follow.

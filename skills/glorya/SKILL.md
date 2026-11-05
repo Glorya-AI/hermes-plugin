@@ -49,11 +49,22 @@ Pass the error message and its link on; don't retry in a loop.
 - `setting_up`: the brand is still setting up; try again in a few minutes.
 - `limit_reached`: up to 3 jobs run at once per brand. Wait, or stop an ad with `cancel_job`.
 
+## Campaigns
+
+- "Run ads for …", "launch a campaign": call `create_campaign` with the user's words as `brief`. Set `platform`, `daily_budget`, `goal` or `destination` only when the user said them.
+- It builds the campaign and launches it with real ad spend on its own. Set `review: true` only when the user asks to approve it first.
+- Default budget is 30 a day in the ad account's currency (TikTok 50). `integration_required`: share `connect_url` so the user connects the ad account.
+- "How are my ads doing?": `list_campaigns`. Connected ad accounts: `get_integrations`.
+
+## Credits and pages
+
+- "How many credits do I have?": `get_credits`. Share `billing_url` to top up, or `checkout_url` when there is no plan.
+- Their landing pages and websites: `list_sites`.
+
 ## Never
 
-- Launch or change ad campaigns. Glorya can't do that from here.
 - Publish a page or site without an explicit ask.
 
 ## The user can also type
 
-`/glorya image|video|page|site <brief>`, `/glorya jobs`, `/glorya answer`, `/glorya refine <change>`, `/glorya publish`, `/glorya cancel`. These run without you.
+`/glorya image|video|page|site|campaign <brief>`, `/glorya jobs`, `/glorya answer`, `/glorya refine <change>`, `/glorya publish`, `/glorya cancel`, `/glorya credits`, `/glorya campaigns`. These run without you.

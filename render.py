@@ -10,8 +10,10 @@ KIND_LABEL = {
     "video_ad": "Video ad",
     "landing_page": "Landing page",
     "website": "Website",
+    "campaign": "Ad campaign",
 }
-KIND_ICON = {"image_ad": "🖼", "video_ad": "🎬", "landing_page": "🧩", "website": "🌐"}
+KIND_ICON = {"image_ad": "🖼", "video_ad": "🎬", "landing_page": "🧩", "website": "🌐", "campaign": "📣"}
+PLATFORM_LABEL = {"meta": "Meta", "google_ads": "Google Ads", "tiktok": "TikTok"}
 
 
 def clip(value: Any, limit: int) -> str:
@@ -90,6 +92,11 @@ def result_links(view: dict[str, Any]) -> str:
         lines.append(progress)
     for asset in assets_of(view):
         lines.append(f"{asset.get('label') or asset.get('type') or 'File'}: {asset.get('url')}")
+    campaign = view.get("campaign") if isinstance(view.get("campaign"), dict) else None
+    if campaign:
+        lines.append(campaign_line(campaign))
+        if campaign.get("manage_url"):
+            lines.append(f"Manage: {campaign['manage_url']}")
     site = view.get("site") if isinstance(view.get("site"), dict) else None
     if site:
         if site.get("live_url"):
@@ -117,6 +124,22 @@ def delivery_turn(view: dict[str, Any], files: Iterable[dict[str, Any]]) -> str:
         + (f"Ad copy from Glorya: {copy}\n\n" if copy else "")
         + f"{media}\n\nGlorya link: {view.get('open_url') or ''}"
     )
+
+
+def campaign_line(campaign: dict[str, Any]) -> str:
+    platform = PLATFORM_LABEL.get(str(campaign.get("platform") or ""), "Campaign")
+    budget = campaign.get("daily_budget")
+    money = f" · {budget} {campaign.get('currency') or ''}/day".rstrip() if budget else ""
+    name = clip(campaign.get("name"), 60)
+    return f"{platform}{f' · {name}' if name else ''} · {campaign.get('status') or 'unknown'}{money}"
+
+
+def money(value: Any, currency: Any) -> str:
+    try:
+        amount = f"{float(value):,.2f}"
+    except (TypeError, ValueError):
+        return "-"
+    return f"{amount} {currency or ''}".strip()
 
 
 def assets_of(view: dict[str, Any]) -> list[dict[str, Any]]:

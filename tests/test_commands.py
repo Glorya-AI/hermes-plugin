@@ -103,3 +103,33 @@ def test_following_a_finished_job_sends_its_files(glorya, plugin, ctx):
     job = plugin.store.get("job-1234567890")
     assert job.status == "completed" and job.delivered == ["img1"] and job.session_key == KEY
     assert glorya("follow job-1234567890", session_key=KEY).startswith("✅")  # nothing new: links only
+
+
+def test_campaign_command_passes_platform_and_budget(glorya, plugin, ctx):
+    ctx.script("create_campaign", created("campaign"))
+    ctx.script("get_job", mcp_ok(view("completed", kind="campaign", campaign={
+        "platform": "meta", "status": "active", "name": "Serum launch", "daily_budget": 30, "currency": "EUR",
+        "campaign_id": "c1", "manage_url": "https://business.facebook.com/x"})))
+    reply = glorya("campaign --platform meta --budget 40 new serum, women 25-45", session_key=KEY)
+    join_followers(plugin)
+    assert ctx.calls[0] == ("glorya", "create_campaign",
+                            {"brief": "new serum, women 25-45", "platform": "meta", "daily_budget": 40})
+    assert "Ad campaign started" in reply
+    assert "Meta · Serum launch · active · 30 EUR/day" in ctx.posts[-1]
+    assert "Manage: https://business.facebook.com/x" in ctx.posts[-1]
+
+
+def test_campaign_budget_must_be_a_number(glorya, ctx):
+    assert "whole number" in glorya("campaign --budget lots serum", session_key=KEY)
+    assert not ctx.calls
+
+
+def test_credits_and_campaigns(glorya, ctx):
+    ctx.script("get_credits", mcp_ok({"plan": {"name": "Starter", "status": "active", "renews_at": "2026-12-01T00:00:00Z"},
+                                      "credits": {"total": 1234}, "billing_url": "https://g/billing", "checkout_url": None}))
+    assert glorya("credits", session_key=KEY) == ("Credits: 1,234\nPlan: Starter (active)\nRenews: 2026-12-01\n"
+                                                  "Top up: https://g/billing")
+    ctx.script("list_campaigns", mcp_ok({"range": {"days": 30}, "campaigns": [
+        {"platform": "google_ads", "name": "Search", "status": "active", "daily_budget": 20, "currency": "USD",
+         "spend": 412.5, "results": 18}]}))
+    assert "Google Ads · Search · active · 20 USD/day · spent 412.50 USD · 18 results" in glorya("campaigns", session_key=KEY)

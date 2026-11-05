@@ -8,11 +8,12 @@
 2. When Glorya needs a choice, it asks you in the chat. Reply, or tap a button.
 3. It sends the finished video or images back as real files.
 
-Works in Telegram, Discord, Slack, WhatsApp, the terminal and Hermes Desktop. Makes image ads, video ads, landing pages and websites.
+Works in Telegram, Discord, Slack, WhatsApp, the terminal and Hermes Desktop. Makes image ads, video ads, landing pages and websites, and runs ad campaigns on Meta, Google and TikTok.
 
 Also included:
 
 - `/glorya video new serum launch` starts a job without the AI model. `jobs`, `answer`, `refine`, `publish` and `cancel` work the same way.
+- `/glorya campaign new serum, 30 a day` builds and launches an ad campaign. `/glorya campaigns` shows spend and results, `/glorya credits` shows what's left.
 - Weekly autopilot: fresh image ads or a video ad posted to your chat every week (`/blueprint glorya:weekly-video-ad`).
 - Hermes Desktop: a Glorya Studio tab with every job, its videos and its questions.
 
@@ -64,6 +65,8 @@ Or type:
 /glorya refine make the background darker
 /glorya publish my-spring-page
 /glorya cancel
+/glorya campaign --platform meta --budget 30 new serum launch
+/glorya campaigns | credits | sites
 /glorya brand | formats
 ```
 
@@ -110,7 +113,7 @@ Native tools: `glorya_attach` (download a finished job's files and return `MEDIA
 ## What it does on your machine (disclosure)
 
 - **Network:** Glorya tool calls go to `https://platform.glorya.ai/mcp` through Hermes' MCP client, using your Glorya sign-in. Finished files are downloaded over https from the links Glorya returns: https only, public hosts only, size-capped. Nothing else is contacted. No telemetry or analytics.
-- **Credits:** creating, refining and answering jobs uses your Glorya credits. Publishing puts a page on the internet. It only happens when you ask, and `/glorya publish` asks you to confirm first.
+- **Credits and ad spend:** creating, refining and answering jobs uses your Glorya credits. `create_campaign` and `/glorya campaign` launch campaigns that spend real money from your ad account, unless you ask to review first. Publishing puts a page on the internet; it only happens when you ask, and `/glorya publish` asks you to confirm first.
 - **Data:** the plugin keeps a SQLite file and downloaded files under `<HERMES_HOME>/plugin-data/glorya/`. The file holds job ids, titles, statuses, the chat a job belongs to (session key and id) and file paths. Finished jobs older than 30 days are pruned.
 - **Agent turns:** with `allow_gateway_injection`, the plugin starts one agent turn in the job's chat when files are ready. That turn costs one model call.
 - **Shell:** only `hermes glorya setup` runs commands, and only the `hermes …` commands listed above, each after you say yes.

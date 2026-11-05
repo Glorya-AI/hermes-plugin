@@ -14,6 +14,9 @@ USAGE = """Glorya — on-brand ads and pages, followed right here.
   /glorya video <brief>          start a video ad (add --format ugc, --review)
   /glorya page <brief>           start a landing page
   /glorya site <brief>           start a website
+  /glorya campaign <brief>       build and launch an ad campaign (--platform meta|google_ads|tiktok, --budget 30, --review)
+  /glorya credits                credits left and your plan
+  /glorya campaigns | sites      your campaigns with spend, your pages and sites
   /glorya jobs                   jobs in this chat
   /glorya status [job]           a job's state
   /glorya answer [job] [answer]  answer Glorya's open question
@@ -27,6 +30,7 @@ USAGE = """Glorya — on-brand ads and pages, followed right here.
 CREATE_ALIASES = {
     "image": "image_ad", "img": "image_ad", "video": "video_ad", "vid": "video_ad",
     "page": "landing_page", "landing": "landing_page", "site": "website", "website": "website",
+    "campaign": "campaign",
 }
 
 
@@ -56,6 +60,9 @@ def _flags(text: str) -> tuple[dict[str, Any], str]:
             skip = True
         elif word.startswith("--format="):
             options["format"] = word.split("=", 1)[1].strip().lower().replace("-", "_")
+        elif word in ("--platform", "--budget") and index + 1 < len(words):
+            options[word[2:]] = words[index + 1].strip().lower()
+            skip = True
         else:
             kept.append(word)
     return options, " ".join(kept).strip()
@@ -127,6 +134,14 @@ class Commands:
             options.pop("format", None)
         if kind in ("landing_page", "website"):
             options.pop("review", None)
+        platform, budget = options.pop("platform", None), options.pop("budget", None)
+        if kind == "campaign":
+            if platform:
+                options["platform"] = platform.replace("-", "_")
+            if budget:
+                if not budget.isdigit():
+                    return "The budget is a whole number per day, e.g. --budget 30"
+                options["daily_budget"] = int(budget)
         ref = self.plugin.glorya().create(kind, brief[:4000], **options)
         if not self.plugin.store.get(str(ref.get("job_id") or "")):
             self.plugin.store.track(str(ref.get("job_id")), kind=kind, title=render.clip(brief, 60),
@@ -226,6 +241,35 @@ class Commands:
         if products:
             lines.append("Products: " + ", ".join(render.clip(p.get("name"), 40) for p in products[:8]))
         return "\n".join(lines)
+
+    def cmd_credits(self, rest: str, session_key: str) -> str:
+        data = self.plugin.glorya().credits()
+        plan, credits = data.get("plan") or {}, data.get("credits") or {}
+        lines = [f"Credits: {credits.get('total', 0):,}",
+                 f"Plan: {plan.get('name') or 'none'} ({plan.get('status') or 'none'})"]
+        if plan.get("renews_at"):
+            lines.append(f"Renews: {str(plan['renews_at'])[:10]}")
+        link = data.get("checkout_url") or data.get("billing_url")
+        if link:
+            lines.append(f"{'Start a plan' if data.get('checkout_url') else 'Top up'}: {link}")
+        return "\n".join(lines)
+
+    def cmd_campaigns(self, rest: str, session_key: str) -> str:
+        data = self.plugin.glorya().campaigns(platform=rest.strip().lower() or None)
+        campaigns = data.get("campaigns") or []
+        if not campaigns:
+            return "No campaigns yet. Start one with /glorya campaign <what to advertise>."
+        days = (data.get("range") or {}).get("days", 30)
+        return f"Campaigns (last {days} days):\n" + "\n".join(
+            f"  {render.campaign_line(c)} · spent {render.money(c.get('spend'), c.get('currency'))}"
+            + (f" · {c['results']} results" if c.get("results") is not None else "") for c in campaigns)
+
+    def cmd_sites(self, rest: str, session_key: str) -> str:
+        sites = self.plugin.glorya().sites().get("sites") or []
+        if not sites:
+            return "No pages or sites yet. Start one with /glorya page <brief>."
+        return "\n".join(f"  {render.label(s.get('kind', ''))} · {render.clip(s.get('name'), 50)} · {s.get('status')}"
+                         + f" · {s.get('live_url') or s.get('preview_url') or s.get('open_url')}" for s in sites)
 
     def cmd_formats(self, rest: str, session_key: str) -> str:
         formats = self.plugin.glorya().formats().get("formats") or []
