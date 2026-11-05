@@ -89,9 +89,9 @@ def test_check_reports_each_requirement():
 
 def test_setup_runs_only_what_the_user_accepts():
     ran, out = [], []
-    answers = iter(["y", "y", "n", "y", "n"])
-    cli.setup(interactive=True, run=lambda argv: ran.append(argv[1:]) or 0, read=lambda _q: next(answers),
-              load=lambda: {}, out=out.append, hermes=["hermes"])
+    answers = iter(["y", "y", "n", "y", "n", "n"])
+    cli.setup(interactive=True, run=lambda argv: ran.append(argv[1:]) or 0, probe=lambda argv: 1,
+              read=lambda _q: next(answers), load=lambda: {}, out=out.append, hermes=["hermes"], in_agent=lambda: False)
     assert ran == [["plugins", "enable", "glorya"],
                    ["mcp", "add", "glorya", "--url", "https://platform.glorya.ai/mcp", "--auth", "oauth"],
                    ["config", "set", "plugins.entries.glorya.allow_gateway_injection", "true"]]
@@ -100,8 +100,27 @@ def test_setup_runs_only_what_the_user_accepts():
 
 def test_setup_without_a_terminal_prints_commands():
     out = []
-    cli.setup(interactive=False, run=lambda argv: pytest.fail("ran a command"), load=lambda: {}, out=out.append)
+    cli.setup(interactive=False, run=lambda argv: pytest.fail("ran a command"), load=lambda: {}, out=out.append,
+              in_agent=lambda: False)
     assert any("hermes mcp login glorya" in line for line in out)
+
+
+def test_setup_keeps_a_working_sign_in():
+    ran, probed = [], []
+    answers = iter(["y"])
+    cli.setup(interactive=True, run=lambda argv: ran.append(argv[1:]) or 0,
+              probe=lambda argv: probed.append(argv[1:]) or 0, read=lambda _q: next(answers),
+              load=lambda: READY, out=lambda _l: None, hermes=["hermes"], in_agent=lambda: False)
+    assert probed == [["mcp", "test", "glorya"]]
+    assert ran == [["gateway", "restart"]]
+
+
+def test_setup_inside_a_chat_only_points_to_the_terminal():
+    out = []
+    code = cli.setup(interactive=True, run=lambda argv: pytest.fail("ran a command"),
+                     probe=lambda argv: pytest.fail("probed"), read=lambda _q: pytest.fail("asked"),
+                     load=lambda: {}, out=out.append, in_agent=lambda: True)
+    assert code == 1 and "own terminal" in out[0]
 
 
 def test_status_exit_code():

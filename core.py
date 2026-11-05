@@ -37,14 +37,34 @@ def _plugin_db():
     return plugin_db("glorya")
 
 
+def mcp_connected(server: str) -> bool:
+    """False only when Hermes reports the server missing from config, signed out or failed; unknown counts as connected."""
+    try:
+        from hermes_cli.config import load_config_readonly
+        from tools.mcp_tool_discovery import mcp_servers_not_connected
+        servers = (load_config_readonly() or {}).get("mcp_servers") or {}
+        return server in servers and server not in mcp_servers_not_connected()
+    except Exception:
+        return True
+
+
+NOT_CONNECTED = (
+    "[Glorya plugin] Glorya isn't connected in Hermes right now, so the mcp__{server}__ tools are missing. "
+    "Don't search for them, change settings or run commands: signing in needs the user's own browser. "
+    "If the user wants Glorya, tell them in one line to run `hermes glorya setup` in their own terminal, "
+    "then start a new chat.")
+
+
 class GloryaPlugin:
     def __init__(self, ctx: Any, *, store: Optional[Store] = None, data_dir: Optional[Callable[[], Path]] = None,
                  clock: Callable[[], float] = time.time, follower: Optional[Follower] = None,
-                 session: Callable[..., Any] = current_session, fetch: Callable[..., Any] = media.fetch_assets):
+                 session: Callable[..., Any] = current_session, fetch: Callable[..., Any] = media.fetch_assets,
+                 connected: Callable[[str], bool] = mcp_connected):
         self.ctx = ctx
         self.clock = clock
         self.session = session
         self.fetch = fetch
+        self.connected = connected
         if data_dir is None:
             # Resolved now, while this profile's home is active: a multiplexed gateway runs several.
             root = _plugin_data_dir()
@@ -122,8 +142,11 @@ class GloryaPlugin:
 
     def on_pre_llm_call(self, **_: Any) -> Optional[dict[str, str]]:
         """Remind the model of this chat's Glorya jobs: open questions it can answer with ``respond``
-        and recent results it can change with ``refine``."""
+        and recent results it can change with ``refine``. When Glorya isn't connected, say so instead."""
         try:
+            server = self.settings().server
+            if not self.connected(server):
+                return {"context": NOT_CONNECTED.format(server=server)}
             key = self.session().key
             if not key:
                 return None
@@ -132,7 +155,6 @@ class GloryaPlugin:
                     if not job.terminal or (job.finished_at and now - job.finished_at < CONTEXT_WINDOW_SECONDS)]
             if not jobs:
                 return None
-            server = self.settings().server
             lines = ["[Glorya plugin] Glorya jobs in this chat:"]
             for job in jobs:
                 lines.append(f"- job_id {job.job_id}: {render.label(job.kind)}"

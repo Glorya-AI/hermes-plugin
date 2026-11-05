@@ -106,6 +106,12 @@ def test_no_context_without_recent_jobs(plugin, store, clock):
     assert plugin.on_pre_llm_call() is None
 
 
+def test_a_signed_out_glorya_points_the_user_to_setup(plugin):
+    plugin.connected = lambda server: server != "glorya"
+    context = plugin.on_pre_llm_call()["context"]
+    assert "hermes glorya setup" in context and "run commands" in context and "mcp__glorya__" in context
+
+
 # -- native tools ---------------------------------------------------------------------------
 
 def test_glorya_attach_returns_media_lines(plugin, ctx):

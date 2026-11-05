@@ -1,12 +1,15 @@
 """``hermes glorya setup|status`` — connect the Glorya MCP server and grant this plugin what it needs.
 
-Setup only runs Hermes' own public commands (``hermes mcp add|login``, ``hermes config set``), each
-after the user says yes. Without a terminal it prints the commands instead.
+Setup only runs Hermes' own public commands (``hermes mcp add|test|login``, ``hermes config set``,
+``hermes gateway restart``), each after the user says yes. Without a terminal, or inside a Hermes chat,
+it prints the commands instead. It never signs in again when the connection already works:
+``hermes mcp login`` drops the saved sign-in first.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -32,6 +35,19 @@ def _hermes() -> list[str]:
 
 def _run(argv: list[str]) -> int:
     return subprocess.call(argv)
+
+
+def _probe(argv: list[str]) -> int:
+    """Exit code of a quiet command; ``hermes mcp test`` gives 0 when connected."""
+    try:
+        return subprocess.call(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return 1
+
+
+def _in_agent_turn() -> bool:
+    """Hermes sets the session key for commands its agent runs."""
+    return bool(os.environ.get("HERMES_SESSION_KEY"))
 
 
 def _entry(config: dict[str, Any]) -> dict[str, Any]:
@@ -72,14 +88,19 @@ def _ask(question: str, default: bool, read: Callable[[str], str]) -> bool:
     return default if not answer else answer in ("y", "yes")
 
 
-def setup(*, interactive: Optional[bool] = None, run: Runner = _run, read: Callable[[str], str] = input,
-          load: Callable[[], dict[str, Any]] = _load_config, out: Callable[[str], None] = print,
-          hermes: Optional[list[str]] = None) -> int:
-    interactive = sys.stdin.isatty() if interactive is None else interactive
+def setup(*, interactive: Optional[bool] = None, run: Runner = _run, probe: Runner = _probe,
+          read: Callable[[str], str] = input, load: Callable[[], dict[str, Any]] = _load_config,
+          out: Callable[[str], None] = print, hermes: Optional[list[str]] = None,
+          in_agent: Callable[[], bool] = _in_agent_turn) -> int:
+    agent = in_agent()
+    interactive = (sys.stdin.isatty() if interactive is None else interactive) and not agent
     hermes = hermes or _hermes()
     config = load()
     steps = check(config)
     server = server_name(config)
+    if agent:
+        out("Run `hermes glorya setup` in your own terminal: signing in opens your browser. Then start a new chat.")
+        return 1
     out("Glorya for Hermes: on-brand image ads, video ads, landing pages and websites.")
     out("You need a Glorya account with an active plan (https://glorya.ai).\n")
     if not interactive:
@@ -103,11 +124,17 @@ def setup(*, interactive: Optional[bool] = None, run: Runner = _run, read: Calla
             out(f"{'✓' if code == 0 else '✗'} {name}" + ("" if code == 0 else f" (failed; run: {fix})"))
         else:
             out(f"• skipped: {name}")
-    if _ask("Sign in to Glorya now? A browser window opens.", True, read):
+    if probe(hermes + ["mcp", "test", server]) == 0:
+        out("✓ signed in to Glorya")
+    elif _ask("Sign in to Glorya now? A browser window opens; finish there while this waits.", True, read):
         code = run(hermes + ["mcp", "login", server])
         out("✓ signed in" if code == 0 else f"✗ sign-in did not finish; run: hermes mcp login {server}")
-    out("\nRestart Hermes so the plugin and tools load: hermes gateway restart")
-    out("Then try: /glorya image summer sale for our bestseller   (or just ask for an ad)")
+    if _ask("Restart Hermes now so Glorya loads?", True, read):
+        code = run(hermes + ["gateway", "restart"])
+        out("✓ restarted" if code == 0 else "✗ restart failed; run: hermes gateway restart")
+    else:
+        out("Restart Hermes before you use Glorya: hermes gateway restart")
+    out("\nThen start a new chat and try: /glorya image summer sale for our bestseller   (or just ask for an ad)")
     out(f"Docs: {DOCS_URL}")
     return 0
 

@@ -28,9 +28,10 @@ hermes plugins install glorya --enable    # from the Hermes plugin catalog, once
 # or straight from this repo:
 hermes plugins install Glorya-AI/hermes-plugin --enable
 
-hermes glorya setup                       # connect Glorya and grant what the plugin needs
-hermes gateway restart
+hermes glorya setup                       # connect, sign in and restart Hermes
 ```
+
+Then start a new chat.
 
 `hermes glorya setup` asks before each step and only runs Hermes' own commands:
 
@@ -38,7 +39,10 @@ hermes gateway restart
 2. `hermes mcp add glorya --url https://platform.glorya.ai/mcp --auth oauth`: adds the Glorya MCP server. Hermes signs in with OAuth and keeps the token. The plugin never sees it.
 3. `hermes config set plugins.entries.glorya.mcp_allowlist '["glorya"]'`: lets the plugin call that server through `ctx.call_mcp`, so it can follow jobs.
 4. `hermes config set plugins.entries.glorya.allow_gateway_injection true`: optional. Lets the plugin start one short agent turn in a chat when a job finishes, so the files arrive as attachments. Without it you get links.
-5. `hermes mcp login glorya`: opens the browser to sign in to Glorya and pick a default brand.
+5. `hermes mcp login glorya`: opens the browser to sign in to Glorya and pick a default brand. Skipped when `hermes mcp test glorya` shows you're already signed in, because a new login drops the saved one.
+6. `hermes gateway restart`: loads the plugin and the Glorya tools.
+
+Run it in your own terminal, not through the Hermes agent: inside a chat it only tells you to do that.
 
 Check the result any time with `hermes glorya status`.
 
@@ -73,10 +77,10 @@ In Hermes Desktop: ⌘K → **Glorya: open studio**.
 
 | What you see | What to do |
 | --- | --- |
-| Hermes doesn't know about Glorya | Run `hermes glorya status`, fix what it lists, then `hermes gateway restart`. |
+| Hermes doesn't know about Glorya | Run `hermes glorya setup` in your terminal, then start a new chat. A chat started before you signed in doesn't have the Glorya tools. |
 | "Start a plan" with a link | Open the link, start the plan, then ask again. |
 | "Brand still setting up" | Finish your brand in the browser and try again in a few minutes. |
-| Sign-in expired | Run `hermes mcp login glorya`. |
+| Sign-in expired | Run `hermes mcp login glorya`, finish in the browser while it waits, then `hermes gateway restart`. |
 | Links instead of files | Run `hermes glorya setup` again and say yes to sending files. Telegram bots upload up to 50 MB; bigger files come as links. |
 
 Full walkthrough: [glorya.ai/docs/mcp/hermes](https://glorya.ai/docs/mcp/hermes).
@@ -111,10 +115,10 @@ Native tools: `glorya_attach` (download a finished job's files and return `MEDIA
 - **Credits:** creating, refining and answering jobs uses your Glorya credits. Publishing puts a page on the internet. It only happens when you ask, and `/glorya publish` asks you to confirm first.
 - **Data:** the plugin keeps a SQLite file and downloaded files under `<HERMES_HOME>/plugin-data/glorya/`. The file holds job ids, titles, statuses, the chat a job belongs to (session key and id) and file paths. Finished jobs older than 30 days are pruned.
 - **Agent turns:** with `allow_gateway_injection`, the plugin starts one agent turn in the job's chat when files are ready. That turn costs one model call.
-- **Shell:** only `hermes glorya setup` runs commands, and only the `hermes …` commands listed above, each after you say yes.
+- **Shell:** only `hermes glorya setup` runs commands, and only the `hermes …` commands listed above, each after you say yes (`hermes mcp test` runs without asking: it only checks the connection).
 - **Credentials:** none are read or stored by the plugin. Hermes holds the Glorya OAuth token.
 - **Background threads:** one daemon thread per followed job (at most 8). Each stops when the job finishes, fails or runs past `follow_minutes`.
-- **Hermes internals:** to route updates to the right chat, the plugin reads the session key with `gateway.session_context.get_session_env`, as the plugin guide documents.
+- **Hermes internals:** to route updates to the right chat, the plugin reads the session key with `gateway.session_context.get_session_env`, as the plugin guide documents. To tell the agent when Glorya is signed out, it reads `tools.mcp_tool_discovery.mcp_servers_not_connected()` (names only, no credentials).
 
 ## Develop
 
