@@ -34,7 +34,7 @@ The tools come from the Glorya MCP server (`mcp__glorya__*`, `https://platform.g
 - For changes ("make the headline shorter", "calmer voice"), call `refine` with the job's `job_id` and the user's words. The plugin follows it again.
 - To send finished files into the chat yourself, call `glorya_attach` with the `job_id` and put each of its `reply_lines` (`MEDIA:/…`) in your reply exactly as written.
 - `glorya_jobs` lists the jobs the plugin follows, in this chat or all chats.
-- Publish a landing page or website only when the user says so ("publish it", "make it live"): call `publish_site`. The plugin posts the live link.
+- Publish a landing page or website only when the user says so ("publish it", "make it live"): call `publish_site`. Hermes asks the user to confirm first; the plugin posts the live link.
 
 ## Video styles
 
@@ -52,7 +52,7 @@ Pass the error message and its link on; don't retry in a loop.
 ## Campaigns
 
 - "Run ads for …", "launch a campaign": call `create_campaign` with the user's words as `brief`. Set `platform`, `daily_budget`, `goal` or `destination` only when the user said them.
-- It builds the campaign and launches it with real ad spend on its own. Set `review: true` only when the user asks to approve it first.
+- A campaign spends real money from the user's ad account. Hermes asks the user to approve every `create_campaign` call (platform and daily budget) before it runs; if they decline, say so in one line and stop. Set `review: true` only when the user also wants to see the ads before launch.
 - Default budget is 30 a day in the ad account's currency (TikTok 50). `integration_required`: share `connect_url` so the user connects the ad account.
 - "How are my ads doing?": `list_campaigns`. Connected ad accounts: `get_integrations`.
 

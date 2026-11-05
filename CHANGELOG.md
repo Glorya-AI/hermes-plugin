@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Ad spend and publishing need your OK: a `pre_tool_call` hook sends every `create_campaign` and `publish_site` call through Hermes' approval prompt, and `/glorya campaign` asks before it starts.
+- Downloads check every redirect hop for a public https host, and job ids are made safe before they name a folder.
+
 ## 0.1.0
 
 - Follow Glorya jobs in the background: one live progress message, Glorya's questions in the chat, finished videos and images as attachments.

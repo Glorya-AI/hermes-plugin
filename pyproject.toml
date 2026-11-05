@@ -1,6 +1,6 @@
 [project]
 name = "glorya-hermes-plugin"
-version = "0.1.0"
+version = "0.1.1"
 description = "Glorya for Hermes Agent: on-brand ads and pages, followed in your chat."
 requires-python = ">=3.11"
 dependencies = []

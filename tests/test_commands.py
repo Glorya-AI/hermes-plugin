@@ -110,6 +110,7 @@ def test_campaign_command_passes_platform_and_budget(glorya, plugin, ctx):
     ctx.script("get_job", mcp_ok(view("completed", kind="campaign", campaign={
         "platform": "meta", "stage": "ready", "daily_budget": 30, "currency": "EUR", "ad_account_id": "act_1",
         "campaign_id": None, "manage_url": "https://platform.glorya.ai/v2/app/w/ws-1/campaigns"})))
+    ctx.choices = ["yes"]
     reply = glorya("campaign --platform meta --budget 40 new serum, women 25-45", session_key=KEY)
     join_followers(plugin)
     assert ctx.calls[0] == ("glorya", "create_campaign",
@@ -139,3 +140,10 @@ def test_campaign_budget_without_a_currency_reads_cleanly():
     from glorya_plugin.render import campaign_line
     assert campaign_line({"platform": "google_ads", "name": "DSA", "status": "paused", "daily_budget": 1.5}) == \
         "Google Ads · DSA · paused · 1.5/day"
+
+
+def test_campaign_command_asks_before_spending(glorya, ctx):
+    ctx.choices = ["no"]
+    assert glorya("campaign --platform tiktok --budget 50 serum", session_key=KEY) == "No campaign started."
+    assert glorya("campaign serum", session_key=KEY) == "No campaign started."  # no answer: nothing starts
+    assert not ctx.calls

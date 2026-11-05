@@ -22,8 +22,8 @@ class Settings:
     follow_minutes: int = 90
 
     def tool_name(self, tool: str) -> str:
-        """The model-facing name Hermes gives a tool on our MCP server."""
-        return f"mcp__{self.server}__{tool}"
+        """The model-facing name Hermes gives a tool on our MCP server (it turns ``-`` into ``_``)."""
+        return f"mcp__{self.server.replace('-', '_')}__{tool}"
 
 
 def _clamp(value: Any, low: int, high: int, default: int) -> int:

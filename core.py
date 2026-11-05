@@ -25,6 +25,9 @@ FOLLOW_NOTE = (
     "started and share open_url, then end your turn. Don't call get_job for this job."
 )
 DESKTOP_NOTE = ' In this desktop chat, also put the line ::glorya-job{{id="{job_id}"}} in your reply: it shows a live Glorya card.'
+# rule_key is the grain of Hermes' "always allow": one answer covers every campaign (or every publish).
+APPROVAL_RULES = {"create_campaign": "glorya:campaign", "publish_site": "glorya:publish"}
+PUBLISH_APPROVAL = "Glorya: put this landing page or website live on the internet?"
 
 
 def _plugin_data_dir() -> Path:
@@ -93,7 +96,7 @@ class GloryaPlugin:
         try:
             media_root = self.data_dir() / "media"
             for job_id in self.store.prune():
-                folder = media_root / job_id
+                folder = media.job_folder(media_root, job_id)
                 if folder.is_dir() and folder.parent == media_root:
                     shutil.rmtree(folder, ignore_errors=True)
         except Exception:
@@ -106,10 +109,24 @@ class GloryaPlugin:
         return Glorya(self.ctx, self.settings().server)
 
     def _tool(self, tool_name: str) -> Optional[str]:
-        prefix = f"mcp__{self.settings().server}__"
-        return tool_name[len(prefix):] if tool_name.startswith(prefix) else None
+        settings = self.settings()
+        for prefix in (settings.tool_name(""), f"mcp__{settings.server}__"):
+            if tool_name.startswith(prefix):
+                return tool_name[len(prefix):]
+        return None
 
     # -- hooks ----------------------------------------------------------------------------------
+
+    def on_pre_tool_call(self, tool_name: str = "", args: Optional[dict] = None, **_: Any) -> Optional[dict]:
+        """Ad spend and publishing go through Hermes' human approval, whatever the model was told."""
+        tool = self._tool(tool_name or "")
+        if tool not in APPROVAL_RULES:
+            return None
+        try:
+            message = render.campaign_approval(args or {}) if tool == "create_campaign" else PUBLISH_APPROVAL
+        except Exception:
+            message = "Glorya: launch a paid ad campaign?"
+        return {"action": "approve", "message": message, "rule_key": APPROVAL_RULES[tool]}
 
     def on_transform_tool_result(self, tool_name: str = "", args: Optional[dict] = None, result: Any = None,
                                  **_: Any) -> Optional[str]:
@@ -203,7 +220,7 @@ class GloryaPlugin:
                                "note": "Nothing to attach yet." if view.get("status") not in TERMINAL else
                                "This job has no image or video files.", "open_url": view.get("open_url")})
         settings = self.settings()
-        files, links = self.fetch(assets, self.data_dir() / "media" / job_id,
+        files, links = self.fetch(assets, media.job_folder(self.data_dir() / "media", job_id),
                                   settings.attach_max_mb * 1024 * 1024, limit=limit)
         if self.store.get(job_id):
             self.store.set_files(job_id, files)

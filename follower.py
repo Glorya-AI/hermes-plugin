@@ -255,7 +255,7 @@ class Follower:
         if settings.deliver != "attach":
             return False
         session = self._session()
-        folder = self._data_dir() / "media" / job_id
+        folder = media.job_folder(self._data_dir() / "media", job_id)
         files, links = self._fetch(assets, folder, settings.attach_max_mb * 1024 * 1024)
         if not files:
             return False

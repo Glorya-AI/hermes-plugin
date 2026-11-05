@@ -137,6 +137,19 @@ def campaign_line(campaign: dict[str, Any]) -> str:
     return f"{platform}{f' · {name}' if name else ''} · {state}{money}"
 
 
+def campaign_approval(args: dict[str, Any]) -> str:
+    """``<platform>, <budget>/day: launch a paid ad campaign?`` for Hermes' approval prompt."""
+    platform = str(args.get("platform") or "").strip().lower().replace("-", "_")
+    budget = args.get("daily_budget")
+    budget_text = f"{budget:g}/day" if isinstance(budget, (int, float)) and not isinstance(budget, bool) and budget > 0 \
+        else "default budget (30/day, TikTok 50)"
+    question = "build a paid ad campaign (you approve the ads before launch)?" if args.get("review") is True \
+        else "launch a paid ad campaign from your ad account?"
+    brief = clip(args.get("brief"), 120)
+    return (f"Glorya · {PLATFORM_LABEL.get(platform) or 'ad platform Glorya picks'}, {budget_text}: {question}"
+            + (f" Brief: {brief}" if brief else ""))
+
+
 def money(value: Any, currency: Any) -> str:
     try:
         amount = f"{float(value):,.2f}"

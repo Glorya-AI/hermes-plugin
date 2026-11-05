@@ -123,3 +123,28 @@ def test_setup_inside_a_chat_only_points_to_the_terminal():
 def test_status_exit_code():
     assert cli.status(load=lambda: READY, out=lambda _l: None) == 0
     assert cli.status(load=lambda: {}, out=lambda _l: None) == 1
+
+
+def test_download_rechecks_the_host_after_redirects(tmp_path):
+    hosts = {"media.glorya.ai": True, "169.254.169.254": False}
+    with pytest.raises(ValueError):
+        media.download("https://media.glorya.ai/a.mp4", tmp_path, "a", 100,
+                       opener=opener(Response(b"x", url="https://169.254.169.254/a.mp4")), host_check=hosts.get)
+    assert not list(tmp_path.iterdir())
+
+
+def test_redirect_hops_to_private_hosts_are_refused():
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request("https://media.glorya.ai/a.mp4")
+    with pytest.raises(urllib.error.HTTPError):
+        media._PublicRedirects().redirect_request(request, None, 302, "Found", {}, "https://127.0.0.1/a.mp4")
+    with pytest.raises(urllib.error.HTTPError):
+        media._PublicRedirects().redirect_request(request, None, 302, "Found", {}, "http://media.glorya.ai/a.mp4")
+
+
+def test_job_folder_stays_inside_its_root(tmp_path):
+    assert media.job_folder(tmp_path, "../../etc").parent == tmp_path
+    assert media.job_folder(tmp_path, "").name == "job"
+    assert media.job_folder(tmp_path, "job-1234567890").name == "job-1234567890"

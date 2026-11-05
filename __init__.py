@@ -20,6 +20,7 @@ TOOLSET = "glorya-plugin"
 
 def register(ctx) -> None:
     plugin = GloryaPlugin(ctx)
+    ctx.register_hook("pre_tool_call", plugin.on_pre_tool_call)
     ctx.register_hook("transform_tool_result", plugin.on_transform_tool_result)
     ctx.register_hook("pre_llm_call", plugin.on_pre_llm_call)
     # Not "glorya": a plugin toolset with the MCP server's name hides that server's mcp__glorya__ tools.

@@ -1,5 +1,5 @@
 name: glorya
-version: 0.1.0
+version: 0.1.1
 manifest_version: 2
 api_version: 1
 description: >-
@@ -14,6 +14,7 @@ provides_tools:
   - glorya_attach
   - glorya_jobs
 provides_hooks:
+  - pre_tool_call
   - transform_tool_result
   - pre_llm_call
 config_schema:

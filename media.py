@@ -11,6 +11,7 @@ import os
 import re
 import socket
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -51,9 +52,32 @@ def _suffix(url: str, content_type: str) -> Optional[str]:
     return suffix if suffix in _ALLOWED_SUFFIXES else None
 
 
+def job_folder(root: Path, job_id: str) -> Path:
+    """``root/<job id>``, with the id reduced to a safe single path component."""
+    return root / (_SAFE.sub("-", str(job_id or "")).strip("-")[:80] or "job")
+
+
+def _safe_url(url: str, host_check: Callable[[str], bool]) -> bool:
+    parsed = urlparse(url)
+    return (parsed.scheme == "https" and bool(parsed.hostname) and not parsed.username and not parsed.password
+            and host_check(parsed.hostname))
+
+
+class _PublicRedirects(urllib.request.HTTPRedirectHandler):
+    """Check each redirect hop before following it, not only the final URL."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _safe_url(newurl, _public_host):
+            raise urllib.error.HTTPError(newurl, code, "redirect to a non-public or non-https host", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_PublicRedirects)
+
+
 def _open(url: str, timeout: float):
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    return urllib.request.urlopen(request, timeout=timeout)  # noqa: S310 - https enforced by caller
+    return _OPENER.open(request, timeout=timeout)  # noqa: S310 - https enforced by caller
 
 
 def download(url: str, folder: Path, name: str, max_bytes: int, *, timeout: float = 60,
@@ -66,9 +90,9 @@ def download(url: str, folder: Path, name: str, max_bytes: int, *, timeout: floa
         raise ValueError("refusing a non-public host")
     folder.mkdir(parents=True, exist_ok=True)
     with opener(url, timeout) as response:
-        final = urlparse(response.geturl() if hasattr(response, "geturl") else url)
-        if final.scheme != "https":
-            raise ValueError("redirected away from https")
+        final = response.geturl() if hasattr(response, "geturl") else url
+        if not _safe_url(final, host_check):
+            raise ValueError("redirected to a non-public or non-https host")
         length = response.headers.get("Content-Length")
         if length and length.isdigit() and int(length) > max_bytes:
             raise TooLarge(f"{int(length)} bytes")

@@ -142,6 +142,10 @@ class Commands:
                 if not budget.isdigit():
                     return "The budget is a whole number per day, e.g. --budget 30"
                 options["daily_budget"] = int(budget)
+            picked = self.plugin.ctx.ask_choice(render.campaign_approval({**options, "brief": brief}),
+                                                [{"value": "yes", "label": "Start"}, {"value": "no", "label": "Not now"}])
+            if picked != "yes":
+                return "No campaign started."
         ref = self.plugin.glorya().create(kind, brief[:4000], **options)
         if not self.plugin.store.get(str(ref.get("job_id") or "")):
             self.plugin.store.track(str(ref.get("job_id")), kind=kind, title=render.clip(brief, 60),
