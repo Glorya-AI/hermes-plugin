@@ -133,3 +133,9 @@ def test_credits_and_campaigns(glorya, ctx):
         {"platform": "google_ads", "name": "Search", "status": "active", "daily_budget": 20, "currency": "USD",
          "spend": 412.5, "results": 18}]}))
     assert "Google Ads · Search · active · 20 USD/day · spent 412.50 USD · 18 results" in glorya("campaigns", session_key=KEY)
+
+
+def test_campaign_budget_without_a_currency_reads_cleanly():
+    from glorya_plugin.render import campaign_line
+    assert campaign_line({"platform": "google_ads", "name": "DSA", "status": "paused", "daily_budget": 1.5}) == \
+        "Google Ads · DSA · paused · 1.5/day"

@@ -130,7 +130,7 @@ def delivery_turn(view: dict[str, Any], files: Iterable[dict[str, Any]]) -> str:
 def campaign_line(campaign: dict[str, Any]) -> str:
     platform = PLATFORM_LABEL.get(str(campaign.get("platform") or ""), "Campaign")
     budget = campaign.get("daily_budget")
-    money = f" · {budget} {campaign.get('currency') or ''}/day".rstrip() if budget else ""
+    money = f" · {' '.join(filter(None, [f'{budget:g}', campaign.get('currency')]))}/day" if budget else ""
     name = clip(campaign.get("name"), 60)
     # list_campaigns rows carry the live status; get_job's campaign carries the draft stage.
     state = campaign.get("status") or campaign.get("stage") or "unknown"
