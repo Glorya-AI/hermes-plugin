@@ -235,6 +235,20 @@ class Follower:
         if new_assets:
             self._store.add_marks(job_id, "delivered", [str(a.get("id") or a.get("url")) for a in new_assets])
 
+    def deliver_finished(self, job_id: str, view: dict[str, Any]) -> bool:
+        """A completed job nobody was following (an outage, a restart): its new files into this chat."""
+        session = self._session()
+        if not session.key or view.get("status") != "completed":
+            return False
+        self._store.track(job_id, kind=str(view.get("kind") or ""), title=str(view.get("title") or ""),
+                          status="completed", open_url=str(view.get("open_url") or ""), source="command",
+                          session_key=session.key, platform=session.platform)
+        self._store.save_view(job_id, view)
+        job = self._store.get(job_id)
+        delivered = set(job.delivered if job else [])
+        new_assets = [a for a in render.assets_of(view) if str(a.get("id") or a.get("url")) not in delivered]
+        return bool(new_assets) and self.deliver_files(job_id, view, new_assets)
+
     def deliver_files(self, job_id: str, view: dict[str, Any], assets: list[dict[str, Any]]) -> bool:
         """Download ``assets`` and have the agent attach them in this chat. False to fall back to links."""
         settings = self._settings()

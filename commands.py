@@ -204,8 +204,12 @@ class Commands:
         if not job_id:
             return "Which job? /glorya follow <job id>"
         view = self.plugin.glorya().get_job(job_id)
-        if view.get("status") in ("completed", "failed", "cancelled"):
-            return render.result_links(view) if view.get("status") == "completed" else render.status(view, self.plugin.clock())
+        if view.get("status") == "completed":
+            if self.plugin.follower.deliver_finished(job_id, view):
+                return f"{render.headline(str(view.get('kind') or ''), str(view.get('title') or ''))} is ready. Sending the files here."
+            return render.result_links(view)
+        if view.get("status") in ("failed", "cancelled"):
+            return render.status(view, self.plugin.clock())
         note = self._follow({**view, "job_id": job_id}, str(view.get("kind") or ""), str(view.get("title") or ""))
         return f"Glorya job {job_id[:8]}:{note}"
 

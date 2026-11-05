@@ -92,3 +92,14 @@ def test_jobs_lists_this_chat(glorya, store):
     listing = glorya("jobs", session_key=KEY)
     assert "job-1234" in listing and "job-othe" not in listing
     assert "job-othe" in glorya("jobs all", session_key=KEY)
+
+
+def test_following_a_finished_job_sends_its_files(glorya, plugin, ctx):
+    image = {"id": "img1", "type": "image", "url": "https://media.glorya.ai/img1.png", "label": "feed"}
+    ctx.script("get_job", mcp_ok(view("completed", kind="image_ad", assets=[image])))
+    reply = glorya("follow job-1234567890", session_key=KEY)
+    assert "Sending the files here" in reply
+    assert len(ctx.injected) == 1 and "MEDIA:" in ctx.injected[0]["content"]
+    job = plugin.store.get("job-1234567890")
+    assert job.status == "completed" and job.delivered == ["img1"] and job.session_key == KEY
+    assert glorya("follow job-1234567890", session_key=KEY).startswith("✅")  # nothing new: links only
