@@ -3,8 +3,8 @@
 The Desktop backend reads the same file, so every write is a short transaction under one lock.
 """
 
-from __future__ import annotations
-
+# No `from __future__ import annotations`: the Desktop host loads this file by path, and @dataclass
+# would then look string annotations up in sys.modules, where this module isn't.
 import json
 import sqlite3
 import threading

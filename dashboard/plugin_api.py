@@ -12,7 +12,6 @@ Routes:
 from __future__ import annotations
 
 import importlib.util
-import sys
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
@@ -25,8 +24,6 @@ def _load_store_module():
     name = "hermes_glorya_store"
     spec = importlib.util.spec_from_file_location(name, Path(__file__).resolve().parents[1] / "store.py")
     module = importlib.util.module_from_spec(spec)
-    # @dataclass resolves string annotations through sys.modules, so register before running it.
-    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
