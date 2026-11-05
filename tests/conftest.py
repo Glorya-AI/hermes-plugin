@@ -146,7 +146,7 @@ def plugin(ctx, store, clock, tmp_path):
         return files, assets[limit:]
 
     instance = GloryaPlugin(ctx, store=store, data_dir=lambda: tmp_path, clock=clock, session=session, fetch=fetch,
-                            connected=lambda server: True)
+                            connection=lambda server: "ok")
     instance.follower = Follower(ctx, store, instance.settings, instance.glorya, lambda: tmp_path, clock=clock,
                                  sleep=lambda _s: None, session=session, notify=lambda *_: None, fetch=fetch)
     instance.fetched = fetched

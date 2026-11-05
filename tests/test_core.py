@@ -106,10 +106,17 @@ def test_no_context_without_recent_jobs(plugin, store, clock):
     assert plugin.on_pre_llm_call() is None
 
 
-def test_a_signed_out_glorya_points_the_user_to_setup(plugin):
-    plugin.connected = lambda server: server != "glorya"
+def test_a_signed_out_glorya_signs_in_through_hermes(plugin):
+    plugin.connection = lambda server: "signed_out"
     context = plugin.on_pre_llm_call()["context"]
-    assert "hermes glorya setup" in context and "run commands" in context and "mcp__glorya__" in context
+    assert 'manage_connections now with action "authorize"' in context
+    assert '[{"name": "glorya", "mcp": true}]' in context and "don't run commands" in context
+
+
+def test_a_missing_glorya_points_the_user_to_setup(plugin):
+    plugin.connection = lambda server: "missing"
+    context = plugin.on_pre_llm_call()["context"]
+    assert "hermes glorya setup" in context and "nothing to restart" in context
 
 
 # -- native tools ---------------------------------------------------------------------------

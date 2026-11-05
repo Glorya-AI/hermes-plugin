@@ -37,34 +37,42 @@ def _plugin_db():
     return plugin_db("glorya")
 
 
-def mcp_connected(server: str) -> bool:
-    """False only when Hermes reports the server missing from config, signed out or failed; unknown counts as connected."""
+def mcp_state(server: str) -> str:
+    """``missing`` (not in config), ``signed_out`` (configured, not connected) or ``ok``; unknown counts as ok."""
     try:
         from hermes_cli.config import load_config_readonly
         from tools.mcp_tool_discovery import mcp_servers_not_connected
-        servers = (load_config_readonly() or {}).get("mcp_servers") or {}
-        return server in servers and server not in mcp_servers_not_connected()
+        if server not in ((load_config_readonly() or {}).get("mcp_servers") or {}):
+            return "missing"
+        return "signed_out" if server in mcp_servers_not_connected() else "ok"
     except Exception:
-        return True
+        return "ok"
 
 
-NOT_CONNECTED = (
-    "[Glorya plugin] Glorya isn't connected in Hermes right now, so the mcp__{server}__ tools are missing. "
-    "Don't search for them, change settings or run commands: signing in needs the user's own browser. "
-    "If the user wants Glorya, tell them in one line to run `hermes glorya setup` in their own terminal, "
-    "then start a new chat.")
+NOT_CONNECTED = {
+    "missing": (
+        "[Glorya plugin] Glorya isn't set up in Hermes yet, so the mcp__{server}__ tools are missing. Don't run "
+        "commands. If the user wants Glorya, tell them in one line to run `hermes glorya setup` in their own "
+        "terminal (nothing to restart), then ask again."),
+    "signed_out": (
+        "[Glorya plugin] Glorya isn't signed in, so the mcp__{server}__ tools are missing. If the user wants Glorya, "
+        "call manage_connections now with action \"authorize\" and connectors [{{\"name\": \"{server}\", \"mcp\": true}}]; "
+        "don't ask first and don't run commands. If it returns a connect_url, give it to the user to open on the "
+        "computer running Hermes and ask them to say when they're done. Once connected, the tools are there; "
+        "continue with their request."),
+}
 
 
 class GloryaPlugin:
     def __init__(self, ctx: Any, *, store: Optional[Store] = None, data_dir: Optional[Callable[[], Path]] = None,
                  clock: Callable[[], float] = time.time, follower: Optional[Follower] = None,
                  session: Callable[..., Any] = current_session, fetch: Callable[..., Any] = media.fetch_assets,
-                 connected: Callable[[str], bool] = mcp_connected):
+                 connection: Callable[[str], str] = mcp_state):
         self.ctx = ctx
         self.clock = clock
         self.session = session
         self.fetch = fetch
-        self.connected = connected
+        self.connection = connection
         if data_dir is None:
             # Resolved now, while this profile's home is active: a multiplexed gateway runs several.
             root = _plugin_data_dir()
@@ -145,8 +153,9 @@ class GloryaPlugin:
         and recent results it can change with ``refine``. When Glorya isn't connected, say so instead."""
         try:
             server = self.settings().server
-            if not self.connected(server):
-                return {"context": NOT_CONNECTED.format(server=server)}
+            state = self.connection(server)
+            if state in NOT_CONNECTED:
+                return {"context": NOT_CONNECTED[state].format(server=server)}
             key = self.session().key
             if not key:
                 return None

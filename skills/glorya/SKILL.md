@@ -11,7 +11,7 @@ Every MCP tool, input, status, error and limit is in [references/tools.md](refer
 
 ## Connect
 
-The tools come from the Glorya MCP server (`mcp__glorya__*`, `https://platform.glorya.ai/mcp`, signed in with the user's Glorya account). If they are missing, don't search for them, change settings or run any command yourself: signing in opens the user's browser, and `hermes mcp login` drops a working sign-in. Tell the user in one line to run `hermes glorya setup` in their own terminal, then start a new chat.
+The tools come from the Glorya MCP server (`mcp__glorya__*`, `https://platform.glorya.ai/mcp`, signed in with the user's Glorya account). If they are missing, sign in through Hermes: call `manage_connections` with action `authorize` and connectors `[{"name": "glorya", "mcp": true}]`. It keeps a working sign-in, or gives a link for the user to open on the computer running Hermes. Never run `hermes` commands yourself. If Hermes says glorya isn't a configured server, tell the user to run `hermes glorya setup` in their own terminal.
 
 ## Rules
 
