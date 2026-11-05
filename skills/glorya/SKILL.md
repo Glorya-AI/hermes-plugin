@@ -7,7 +7,7 @@ description: Make on-brand image ads, video ads, landing pages and websites with
 
 Glorya is an AI marketing agent that already knows the user's brand: logo, colors, fonts, products and language. In Hermes, the Glorya plugin follows each job in the background and reports in the chat by itself. You start the work and step back.
 
-Every MCP tool, input, status, error and limit is in [references/tools.md](references/tools.md).
+Every MCP tool, input, status, error and limit is in [references/tools.md](references/tools.md). In Hermes, `create_campaign` and `publish_site` always wait for the user's OK in Hermes' approval prompt, even where tools.md says Glorya launches without asking.
 
 ## Connect
 
