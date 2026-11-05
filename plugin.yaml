@@ -3,9 +3,8 @@ version: 0.1.0
 manifest_version: 2
 api_version: 1
 description: >-
-  On-brand image ads, video ads, landing pages and websites from Glorya, right in your chat. Glorya
-  jobs run in the background: the plugin follows them, updates one progress message, relays Glorya's
-  questions and posts the finished videos and images into the chat that asked.
+  Ask Hermes for an ad and get the finished video back in your chat. Glorya knows your brand. The plugin
+  starts the job, keeps one message updated, asks you when Glorya needs a choice and sends back the files.
 author: Glorya
 license: MIT
 homepage: https://github.com/Glorya-AI/hermes-plugin

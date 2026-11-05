@@ -1,15 +1,20 @@
 # Glorya for Hermes
 
-Ask Hermes for an ad and keep chatting. [Glorya](https://glorya.ai) makes on-brand image ads, video ads, landing pages and websites; this plugin follows each job in the background and reports in the chat that asked: Telegram, Discord, Slack, WhatsApp, the TUI or Hermes Desktop.
+**Ask Hermes for an ad. Get the finished video back in your chat.**
 
-- **One live progress message.** It is edited in place while Glorya writes the script, makes the frames and renders the video. No model tokens are spent polling.
-- **Questions where you are.** When Glorya needs a decision (which script, approve the cut), the question lands in the chat. Answer in your own words, or use `/glorya answer` to get the choices as buttons.
-- **Finished files as real attachments.** Videos and images arrive as native files in the chat, with the ad copy. Pages arrive as preview and live links.
-- **`/glorya` without the model.** `/glorya video --format ugc new serum launch` starts a job directly. `jobs`, `status`, `answer`, `refine`, `publish` and `cancel` work the same way.
-- **Scheduled creative.** Two Automation Blueprints, *Weekly on-brand image ads* and *Weekly on-brand video ad*, deliver fresh creative to a chat every week.
-- **Glorya Studio in Hermes Desktop.** A workspace tab lists every job with players, open questions as buttons and quick actions, and a status-bar chip counts running jobs. When the agent adds `::glorya-job{id="…"}`, a live job card appears inline in the chat.
+[Glorya](https://glorya.ai) already knows your brand: logo, colors, fonts, products. Tell Hermes what you want, like "video ad for our new serum", and the plugin does the rest:
 
-Glorya already knows your brand (logo, colors, fonts, products and language), so a brief like "summer sale ad" is enough.
+1. It starts the job and keeps one message updated while Glorya works.
+2. When Glorya needs a choice, it asks you in the chat. Reply, or tap a button.
+3. It sends the finished video or images back as real files.
+
+Works in Telegram, Discord, Slack, WhatsApp, the terminal and Hermes Desktop. Makes image ads, video ads, landing pages and websites.
+
+Also included:
+
+- `/glorya video new serum launch` starts a job without the AI model. `jobs`, `answer`, `refine`, `publish` and `cancel` work the same way.
+- Weekly autopilot: fresh image ads or a video ad posted to your chat every week (`/blueprint glorya:weekly-video-ad`).
+- Hermes Desktop: a Glorya Studio tab with every job, its videos and its questions.
 
 ## Requirements
 
