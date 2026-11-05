@@ -69,6 +69,18 @@ Scheduled: `/blueprint glorya:weekly-image-ads` or `/blueprint glorya:weekly-vid
 
 In Hermes Desktop: ⌘K → **Glorya: open studio**.
 
+## If something is off
+
+| What you see | What to do |
+| --- | --- |
+| Hermes doesn't know about Glorya | Run `hermes glorya status`, fix what it lists, then `hermes gateway restart`. |
+| "Start a plan" with a link | Open the link, start the plan, then ask again. |
+| "Brand still setting up" | Finish your brand in the browser and try again in a few minutes. |
+| Sign-in expired | Run `hermes mcp login glorya`. |
+| Links instead of files | Run `hermes glorya setup` again and say yes to sending files. Telegram bots upload up to 50 MB; bigger files come as links. |
+
+Full walkthrough: [glorya.ai/docs/mcp/hermes](https://glorya.ai/docs/mcp/hermes).
+
 ## Settings
 
 Settings → Plugins → Glorya in Desktop, or `plugins.entries.glorya.settings` in `config.yaml`:
