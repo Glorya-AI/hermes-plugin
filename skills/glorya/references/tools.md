@@ -81,7 +81,7 @@ Annotations: read-only.
 | `job_id` | string, 1 to 200 characters | required | none | The `job_id` a create tool or `refine` returned. |
 | `wait_seconds` | integer, 0 to 45 | optional | `0` | Use `30`. It returns early as soon as the job changes. |
 
-Returns `job_id`, `kind` (`image_ad`, `video_ad`, `landing_page`, `website` or `campaign`), `status`, `workspace_id`, `open_url`, `next_step`, `title`, `progress` (Glorya's latest message), `error`, `assets` (up to 8, each with `id`, `type`, `url`, `preview_url`, `poster_url`, `width`, `height`, `label`, `created_at`), `questions` (each with `request_id`, `kind`, `question`, `choices`, `details`, `preview_images`), `site` (`kind`, `status`, `preview_url`, `live_url`, `publish_status`, or null for ads and campaigns) and `campaign` (`platform`, `stage`, `daily_budget`, `currency`, `ad_account_id`, `campaign_id`, `manage_url`, or null for other jobs and before preparation starts).
+Returns `job_id`, `kind` (`image_ad`, `video_ad`, `landing_page`, `website` or `campaign`), `status`, `workspace_id`, `open_url`, `next_step`, `title`, `progress` (Glorya's latest message), `error`, `assets` (up to 8, each with `id`, `type`, `url`, `preview_url`, `poster_url`, `width`, `height`, `label`, `created_at`), `questions` (each with `request_id`, `kind`, `question`, `choices`, `details`, `preview_images`), `site` (`kind`, `status`, `preview_url`, `live_url`, `publish_status`, or null for ads and campaigns) and, on campaign jobs once preparation starts, `campaign` (`platform`, `stage`, `daily_budget`, `currency`, `ad_account_id`, `campaign_id`, `manage_url`). Fields may be added over time.
 
 ### `list_assets`
 
