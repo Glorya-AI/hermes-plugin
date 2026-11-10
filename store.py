@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS jobs (
   finished_at REAL
 );
 CREATE INDEX IF NOT EXISTS jobs_session ON jobs (session_key, updated_at);
+CREATE TABLE IF NOT EXISTS brand_selection (
+  server TEXT NOT NULL,
+  session_key TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  PRIMARY KEY (server, session_key)
+);
 """
 
 
@@ -120,6 +126,24 @@ class Store:
             if self._conn is not None:
                 self._conn.close()
                 self._conn = None
+
+    def workspace(self, server: str, session_key: str) -> str:
+        if not session_key:
+            return ""
+        with self._lock:
+            row = self._db().execute(
+                "SELECT workspace_id FROM brand_selection WHERE server = ? AND session_key = ?",
+                (server, session_key)).fetchone()
+        return row[0] if row else ""
+
+    def select_workspace(self, server: str, session_key: str, workspace_id: str) -> None:
+        if not session_key:
+            raise ValueError("A conversation is required to switch brands")
+        with self._lock:
+            db = self._db()
+            db.execute("INSERT INTO brand_selection VALUES (?, ?, ?) ON CONFLICT(server, session_key) "
+                       "DO UPDATE SET workspace_id = excluded.workspace_id", (server, session_key, workspace_id))
+            db.commit()
 
     def get(self, job_id: str) -> Optional[Job]:
         with self._lock:

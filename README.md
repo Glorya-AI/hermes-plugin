@@ -133,3 +133,7 @@ The folder must be named `glorya` (a valid Python package name), as it is when H
 ## License
 
 MIT
+
+### Switch brands within a conversation
+
+Use `/glorya switch <brand name or workspace id>` to remember a brand for this chat. Duplicate names are listed with workspace and organization IDs; choose the exact ID. `/glorya switch default` resets to the OAuth default. Creation commands accept `--workspace <id>` for a one-call override. The selected brand is stored per MCP server and conversation, survives plugin restarts, and never changes the workspace of an existing job. Natural-language calls receive the selected workspace in their conversation context.

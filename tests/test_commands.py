@@ -147,3 +147,29 @@ def test_campaign_command_asks_before_spending(glorya, ctx):
     assert glorya("campaign --platform tiktok --budget 50 serum", session_key=KEY) == "No campaign started."
     assert glorya("campaign serum", session_key=KEY) == "No campaign started."  # no answer: nothing starts
     assert not ctx.calls
+
+
+def test_switch_is_per_conversation_and_explicit_workspace_wins(glorya, plugin, ctx):
+    ctx.script("list_workspaces", mcp_ok({"workspaces": [{"id": "ws-B", "name": "Brand B"}]}))
+    assert "Brand B" in glorya("switch Brand B", session_key=KEY)
+    assert plugin.store.workspace("glorya", KEY) == "ws-B"
+    assert plugin.store.workspace("glorya", "other-chat") == ""
+    ctx.script("get_brand", mcp_ok({"brand": {"name": "Brand B"}}))
+    glorya("brand", session_key=KEY)
+    assert ctx.calls[-1][2] == {"workspace": "ws-B"}
+    ctx.script("create_image_ad", created("image_ad"))
+    ctx.script("get_job", mcp_ok(view("completed", kind="image_ad")))
+    glorya("image --workspace ws-C spring", session_key=KEY)
+    join_followers(plugin)
+    create = next(call for call in ctx.calls if call[1] == "create_image_ad")
+    assert create[2]["workspace"] == "ws-C"
+    assert plugin.store.workspace("glorya", KEY) == "ws-B"
+    assert "default" in glorya("switch default", session_key=KEY)
+    assert plugin.store.workspace("glorya", KEY) == ""
+
+
+def test_ambiguous_switch_keeps_selection(glorya, plugin, ctx):
+    plugin.store.select_workspace("glorya", KEY, "ws-A")
+    ctx.script("list_workspaces", mcp_ok({"workspaces": [{"id": "ws-B", "name": "Same"}, {"id": "ws-C", "name": "Same"}]}))
+    assert "exact workspace id" in glorya("switch Same", session_key=KEY)
+    assert plugin.store.workspace("glorya", KEY) == "ws-A"

@@ -105,8 +105,10 @@ class GloryaPlugin:
     def settings(self) -> Settings:
         return load(self.ctx)
 
-    def glorya(self) -> Glorya:
-        return Glorya(self.ctx, self.settings().server)
+    def glorya(self, session_key: Optional[str] = None) -> Glorya:
+        server = self.settings().server
+        key = self.session().key if session_key is None else session_key
+        return Glorya(self.ctx, server, self.store.workspace(server, key))
 
     def _tool(self, tool_name: str) -> Optional[str]:
         settings = self.settings()
@@ -179,9 +181,12 @@ class GloryaPlugin:
             now = self.clock()
             jobs = [job for job in self.store.recent(session_key=key, limit=5, since=now - 6 * 3600)
                     if not job.terminal or (job.finished_at and now - job.finished_at < CONTEXT_WINDOW_SECONDS)]
-            if not jobs:
+            workspace = self.store.workspace(server, key)
+            if not jobs and not workspace:
                 return None
             lines = ["[Glorya plugin] Glorya jobs in this chat:"]
+            if workspace:
+                lines.insert(0, f"Selected Glorya workspace for this conversation: {workspace}. Pass workspace={workspace} on all brand-specific calls. Existing jobs keep their job_id.")
             for job in jobs:
                 lines.append(f"- job_id {job.job_id}: {render.label(job.kind)}"
                              + (f' "{render.clip(job.title, 60)}"' if job.title else "") + f", {job.status}")

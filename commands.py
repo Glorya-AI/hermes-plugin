@@ -24,6 +24,7 @@ USAGE = """Glorya — on-brand ads and pages, followed right here.
   /glorya publish [job] [slug]   put a landing page or website live
   /glorya cancel [job]           stop an image or video ad
   /glorya follow <job>           follow a job here
+  /glorya switch <brand or id>    select a brand for this chat; default resets it
   /glorya brand | formats        your brand, the video styles
 [job] is the 8-character id from /glorya jobs; it defaults to this chat's latest job."""
 
@@ -60,8 +61,8 @@ def _flags(text: str) -> tuple[dict[str, Any], str]:
             skip = True
         elif word.startswith("--format="):
             options["format"] = word.split("=", 1)[1].strip().lower().replace("-", "_")
-        elif word in ("--platform", "--budget") and index + 1 < len(words):
-            options[word[2:]] = words[index + 1].strip().lower()
+        elif word in ("--platform", "--budget", "--workspace") and index + 1 < len(words):
+            options[word[2:]] = words[index + 1].strip()
             skip = True
         else:
             kept.append(word)
@@ -86,7 +87,7 @@ class Commands:
         if verb in ("", "help", "-h", "--help"):
             return self.help(session_key)
         if verb in CREATE_ALIASES:
-            return self.create(CREATE_ALIASES[verb], rest)
+            return self.create(CREATE_ALIASES[verb], rest, session_key)
         handler = getattr(self, f"cmd_{verb}", None)
         if handler is None:
             return f"Unknown /glorya command '{verb}'.\n\n{USAGE}"
@@ -126,7 +127,7 @@ class Commands:
             return USAGE
         return USAGE + "\n\nIn this chat:\n" + "\n".join(render.job_line(j) for j in jobs)
 
-    def create(self, kind: str, rest: str) -> str:
+    def create(self, kind: str, rest: str, session_key: str = "") -> str:
         options, brief = _flags(rest)
         if not brief:
             return f"Tell Glorya what to make, e.g. /glorya {kind.split('_')[0]} summer sale for our new serum"
@@ -137,7 +138,7 @@ class Commands:
         platform, budget = options.pop("platform", None), options.pop("budget", None)
         if kind == "campaign":
             if platform:
-                options["platform"] = platform.replace("-", "_")
+                options["platform"] = platform.lower().replace("-", "_")
             if budget:
                 if not budget.isdigit():
                     return "The budget is a whole number per day, e.g. --budget 30"
@@ -146,7 +147,7 @@ class Commands:
                                                 [{"value": "yes", "label": "Start"}, {"value": "no", "label": "Not now"}])
             if picked != "yes":
                 return "No campaign started."
-        ref = self.plugin.glorya().create(kind, brief[:4000], **options)
+        ref = self.plugin.glorya(session_key).create(kind, brief[:4000], **options)
         if not self.plugin.store.get(str(ref.get("job_id") or "")):
             self.plugin.store.track(str(ref.get("job_id")), kind=kind, title=render.clip(brief, 60),
                                     open_url=str(ref.get("open_url") or ""), source="command")
@@ -232,8 +233,28 @@ class Commands:
         note = self._follow({**view, "job_id": job_id}, str(view.get("kind") or ""), str(view.get("title") or ""))
         return f"Glorya job {job_id[:8]}:{note}"
 
+    def cmd_switch(self, rest: str, session_key: str) -> str:
+        if not session_key:
+            return "Open a chat to select its brand."
+        server = self.plugin.settings().server
+        if rest.strip().lower() == "default":
+            self.plugin.store.select_workspace(server, session_key, "")
+            return "Using the connection's default brand in this chat."
+        if not rest.strip():
+            return "Choose a brand with /glorya switch <name or workspace id>."
+        data = self.plugin.glorya(session_key).call("list_workspaces", {"query": rest.strip(), "limit": 50})
+        brands = data.get("workspaces") or []
+        exact = [brand for brand in brands if brand.get("id") == rest.strip()]
+        matches = exact or brands
+        if len(matches) != 1:
+            choices = "\n".join(f"- {brand.get('name')} ({brand.get('id')}) · {brand.get('organization_id', '')}" for brand in matches)
+            return "Choose an exact workspace id:\n" + choices if matches else "No accessible brand matches that name."
+        brand = matches[0]
+        self.plugin.store.select_workspace(server, session_key, str(brand["id"]))
+        return f"Using {brand.get('name')} ({brand['id']}) in this chat."
+
     def cmd_brand(self, rest: str, session_key: str) -> str:
-        data = self.plugin.glorya().brand()
+        data = self.plugin.glorya(session_key).brand()
         brand = data.get("brand") or {}
         products = data.get("products") or []
         lines = [f"Brand: {brand.get('name') or 'unnamed'}"]
@@ -247,7 +268,7 @@ class Commands:
         return "\n".join(lines)
 
     def cmd_credits(self, rest: str, session_key: str) -> str:
-        data = self.plugin.glorya().credits()
+        data = self.plugin.glorya(session_key).credits()
         plan, credits = data.get("plan") or {}, data.get("credits") or {}
         lines = [f"Credits: {credits.get('total', 0):,}",
                  f"Plan: {plan.get('name') or 'none'} ({plan.get('status') or 'none'})"]
@@ -259,7 +280,7 @@ class Commands:
         return "\n".join(lines)
 
     def cmd_campaigns(self, rest: str, session_key: str) -> str:
-        data = self.plugin.glorya().campaigns(platform=rest.strip().lower() or None)
+        data = self.plugin.glorya(session_key).campaigns(platform=rest.strip().lower() or None)
         campaigns = data.get("campaigns") or []
         if not campaigns:
             return "No campaigns yet. Start one with /glorya campaign <what to advertise>."
@@ -269,7 +290,7 @@ class Commands:
             + (f" · {c['results']} results" if c.get("results") is not None else "") for c in campaigns)
 
     def cmd_sites(self, rest: str, session_key: str) -> str:
-        sites = self.plugin.glorya().sites().get("sites") or []
+        sites = self.plugin.glorya(session_key).sites().get("sites") or []
         if not sites:
             return "No pages or sites yet. Start one with /glorya page <brief>."
         return "\n".join(f"  {render.label(s.get('kind', ''))} · {render.clip(s.get('name'), 50)} · {s.get('status')}"
