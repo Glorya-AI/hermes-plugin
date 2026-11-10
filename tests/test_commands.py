@@ -29,7 +29,7 @@ def test_video_command_starts_and_follows(glorya, plugin, ctx):
     reply = glorya("video --format ugc new serum, make it punchy", session_key=KEY)
     join_followers(plugin)
     assert ctx.calls[0] == ("glorya", "create_video_ad",
-                            {"brief": "new serum, make it punchy", "format": "ugc"})
+                            {"brief": "new serum, make it punchy", "format": "ugc", "idempotency_key": ctx.calls[0][2]["idempotency_key"]})
     assert "started. Updates follow in this chat." in reply
 
 
@@ -38,7 +38,7 @@ def test_page_command_drops_ad_only_flags(glorya, ctx, plugin):
     ctx.script("get_job", mcp_ok(view("completed", kind="landing_page")))
     glorya("page --review --format ugc spring launch", session_key=KEY)
     join_followers(plugin)
-    assert ctx.calls[0][2] == {"brief": "spring launch"}
+    assert ctx.calls[0][2] == {"brief": "spring launch", "idempotency_key": ctx.calls[0][2]["idempotency_key"]}
 
 
 def test_answer_with_buttons(glorya, plugin, ctx, store):
@@ -114,7 +114,8 @@ def test_campaign_command_passes_platform_and_budget(glorya, plugin, ctx):
     reply = glorya("campaign --platform meta --budget 40 new serum, women 25-45", session_key=KEY)
     join_followers(plugin)
     assert ctx.calls[0] == ("glorya", "create_campaign",
-                            {"brief": "new serum, women 25-45", "platform": "meta", "daily_budget": 40})
+                            {"brief": "new serum, women 25-45", "platform": "meta", "daily_budget": 40,
+                             "idempotency_key": ctx.calls[0][2]["idempotency_key"]})
     assert "Ad campaign started" in reply
     assert "Meta · ready · 30 EUR/day" in ctx.posts[-1]
     assert "Manage: https://platform.glorya.ai/v2/app/w/ws-1/campaigns" in ctx.posts[-1]
@@ -173,3 +174,37 @@ def test_ambiguous_switch_keeps_selection(glorya, plugin, ctx):
     ctx.script("list_workspaces", mcp_ok({"workspaces": [{"id": "ws-B", "name": "Same"}, {"id": "ws-C", "name": "Same"}]}))
     assert "exact workspace id" in glorya("switch Same", session_key=KEY)
     assert plugin.store.workspace("glorya", KEY) == "ws-A"
+
+
+def test_uncertain_start_preserves_retry_key_and_brand(glorya, plugin, ctx):
+    from uuid import UUID
+    plugin.store.select_workspace("glorya", KEY, "ws-B")
+    ctx.script("create_image_ad", mcp_error("creation_uncertain", "Start could not be confirmed."))
+    reply = glorya("image summer", session_key=KEY)
+    key = ctx.calls[-1][2]["idempotency_key"]
+    assert str(UUID(key)) == key
+    assert key in reply and "--workspace ws-B" in reply and "jobs remote" in reply
+    assert len(ctx.calls) == 1  # no automatic redispatch
+    glorya(f"image --workspace ws-B --request {key} summer", session_key=KEY)
+    assert ctx.calls[-1][2] == ctx.calls[0][2]
+
+
+def test_lost_response_keeps_client_key(glorya, ctx):
+    def unavailable(_):
+        raise TimeoutError("response lost")
+    ctx.script("create_image_ad", unavailable)
+    reply = glorya("image --request known-key summer", session_key=KEY)
+    assert "known-key" in reply and "same brand, brief and flags" in reply
+    assert len(ctx.calls) == 1
+
+
+def test_remote_jobs_and_pending_keys_use_selected_brand(glorya, plugin, ctx):
+    plugin.store.select_workspace("glorya", KEY, "ws-B")
+    ctx.script("list_jobs", mcp_ok({"jobs": [{"job_id": "job-remote", "title": "Summer", "kind": "image_ad"}],
+                                   "pending_starts": [{"idempotency_key": "pending-key", "tool": "create_image_ad", "job_id": None}],
+                                   "next_cursor": "next-page"}))
+    reply = glorya("jobs remote", session_key=KEY)
+    assert ctx.calls[-1][2] == {"limit": 10, "workspace": "ws-B"}
+    assert "job-remote" in reply and "pending-key" in reply and "jobs remote next-page" in reply
+    glorya("jobs remote next-page", session_key=KEY)
+    assert ctx.calls[-1][2]["cursor"] == "next-page"
