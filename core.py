@@ -26,7 +26,7 @@ FOLLOW_NOTE = (
 )
 DESKTOP_NOTE = ' In this desktop chat, also put the line ::glorya-job{{id="{job_id}"}} in your reply: it shows a live Glorya card.'
 # rule_key is the grain of Hermes' "always allow": one answer covers every campaign (or every publish).
-APPROVAL_RULES = {"create_campaign": "glorya:campaign", "publish_site": "glorya:publish"}
+APPROVAL_RULES = {"create_campaign": "glorya:campaign", "publish_site": "glorya:publish", "publish_existing_site": "glorya:publish", "set_campaign_status": "glorya:campaign-status"}
 PUBLISH_APPROVAL = "Glorya: put this landing page or website live on the internet?"
 
 
@@ -125,7 +125,12 @@ class GloryaPlugin:
         if tool not in APPROVAL_RULES:
             return None
         try:
-            message = render.campaign_approval(args or {}) if tool == "create_campaign" else PUBLISH_APPROVAL
+            if tool == "set_campaign_status":
+                selected = args or {}
+                action = "Resume" if selected.get("status") == "active" else "Pause"
+                message = f"Glorya: {action} campaign {selected.get('campaign_id', '')}? Resuming uses its existing ad budget."
+            else:
+                message = render.campaign_approval(args or {}) if tool == "create_campaign" else PUBLISH_APPROVAL
         except Exception:
             message = "Glorya: launch a paid ad campaign?"
         return {"action": "approve", "message": message, "rule_key": APPROVAL_RULES[tool]}

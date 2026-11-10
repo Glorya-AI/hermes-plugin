@@ -102,7 +102,7 @@ class Glorya:
 
     def call(self, tool: str, arguments: Optional[dict[str, Any]] = None, timeout: float = 30) -> dict[str, Any]:
         args = {key: value for key, value in (arguments or {}).items() if value not in (None, "", [])}
-        if self.workspace and tool in {*CREATE_TOOLS.values(), "get_brand", "get_credits", "get_integrations", "list_sites", "list_campaigns", "list_assets", "list_jobs"}:
+        if self.workspace and tool in {*CREATE_TOOLS.values(), "get_brand", "get_credits", "get_integrations", "list_sites", "list_campaigns", "list_assets", "list_jobs", "get_site", "edit_site", "publish_existing_site", "get_campaign_report", "set_campaign_status"}:
             args.setdefault("workspace", self.workspace)
         try:
             envelope = self._ctx.call_mcp(self.server, tool, args, timeout=timeout)
