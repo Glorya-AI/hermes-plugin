@@ -15,7 +15,8 @@ The tools come from the Glorya MCP server (`mcp__glorya__*`, `https://platform.g
 
 ## Rules
 
-- Use the default brand: leave `workspace` empty. Only when the user names another brand, call `list_workspaces` with `query` set to that name and pass the matching `id` as `workspace`.
+- Use the default brand until the user switches. Respect the selected workspace in the plugin context; resolve a different brand uniquely with `list_workspaces` and pass its `id` as `workspace` on every subsequent brand-specific call in this conversation. Disambiguate duplicate names. Existing jobs stay with their `job_id`.
+- `/glorya switch <brand name or workspace id>` saves the selection per conversation and MCP server; `/glorya switch default` resets it. Create commands accept `--workspace <id>` for a one-call override.
 - Start right away. Pass the user's own words as `brief`. With no details, pass what they asked for, such as "Create an image ad".
 - Ask nothing before you start: not the format, size, language, audience or style. Glorya picks these.
 - Set `language`, `format` or `references` only when the user gave them. `references` are public https links.
