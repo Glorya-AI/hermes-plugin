@@ -315,7 +315,7 @@ A failed call returns `isError: true` with a message for the user and a JSON obj
 | `invalid_destination` | The destination doesn't fit: `instant_form` is Meta only and not for buyers, `website` needs `website_url`. | Change the destination or pass `website_url`. |
 | `job_not_found` | No job with that id for this account. | Check the `job_id`. |
 | `no_open_question` | The question was answered, expired, or `request_id` is needed. | Call `get_job` for the current questions. |
-| `invalid_answer` | The answer isn't one of the exact choices. | Send one label from `choices`. |
+| `job_changed` | The job changed while the request was on its way. | Call `get_job` for the current state, then try again. |
 | `not_publishable` | Not a site, still building, waiting for an answer, or already publishing. | Wait for `completed`, then publish. |
 | `not_cancellable` | Landing page and website builds can't be cancelled. | Use `refine` to change the result instead. |
 | `upstream_error` | Glorya couldn't do the action. | Tell the user the message. |
