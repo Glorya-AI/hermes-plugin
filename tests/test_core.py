@@ -212,3 +212,11 @@ def test_job_ids_are_made_safe_before_naming_a_folder(plugin, ctx, tmp_path):
     out = json.loads(plugin.tool_attach({"job_id": "../../etc/x"}))
     folder = (tmp_path / "media").resolve()
     assert all(str(__import__("pathlib").Path(f["path"]).resolve()).startswith(str(folder) + "/") for f in out["files"])
+
+
+def test_existing_site_publish_and_campaign_resume_require_approval(plugin):
+    assert plugin.on_pre_tool_call("mcp__glorya__publish_existing_site", {"site_id": "site1"})["rule_key"] == "glorya:publish"
+    directive = plugin.on_pre_tool_call("mcp__glorya__set_campaign_status", {"campaign_id": "campaign1", "status": "active"})
+    assert directive["action"] == "approve"
+    assert "budget" in directive["message"]
+    assert "campaign1" in directive["message"]

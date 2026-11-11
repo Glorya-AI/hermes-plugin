@@ -146,3 +146,5 @@ The plugin never automatically resubmits an uncertain create. Use `/glorya jobs 
 find server-side job IDs and pending starts for the selected brand, then `/glorya follow <job id>`.
 Pagination uses `/glorya jobs remote <cursor>`. Local `/glorya jobs` remains scoped to this chat.
 This recovery support requires the MCP server's durable-create and `list_jobs` releases.
+
+The connector also exposes `list_jobs` for remote recovery, `get_site` / `edit_site` / `publish_existing_site` for existing sites, `get_campaign_report` for daily reporting, and `set_campaign_status` for pause/resume. Publishing and campaign status changes use Hermes approval hooks. Existing-site operations are followed with `get_site`; the job follower remains for MCP job IDs.

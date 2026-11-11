@@ -271,7 +271,7 @@ Returns `job_id`, `status` (`publishing`), `open_url` and `next_step`. Then call
 
 ### `cancel_job`
 
-Stops a running image ad, video ad or campaign job and closes its open question. Finished files stay in Glorya. A campaign that's already live keeps running; the user pauses it in Glorya or the ad platform. Landing page and website builds can't be cancelled.
+Stops a running image ad, video ad or campaign job and closes its open question. Finished files stay in Glorya. A campaign that's already live keeps running; pause it with `set_campaign_status` when the user asks. Landing page and website builds can't be cancelled.
 
 Annotations: destructive.
 
@@ -341,3 +341,76 @@ The server also offers four prompts without arguments: `image-ad`, `video-ad`, `
 Create calls reserve admission durably before dispatch. Reusing an `idempotency_key` with the same tool, brand and inputs returns the same job. `idempotency_conflict` means the key was reused for different work. `creation_pending` or `creation_uncertain` means a start may already have been accepted: never start a replacement with a new key. Keep `request_id` and any `job_id`, check that job, or recover it with `list_jobs`. Uncertain requests are not automatically dispatched a second time. Limits serialize admission per user and organization.
 
 `creation_rejected` means the original start failed before job dispatch (for example, an invalid reference). It releases its concurrent slot. Correct the inputs and use a new key. A recorded campaign activation failure remains a failed job even when the preparation draft is ready; check existing campaigns before attempting replacement work.
+
+## Existing sites and campaigns
+
+### `get_site`
+
+Read any accessible site from `list_sites`, including platform-created sites. Read `clarification` and relay it to the user; answer with `edit_site`.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `site_id` | string, 1 to 200 characters | required | none | Site id from `list_sites`. |
+
+Returns site_id, workspace_id, kind, name, status, publish_status, preview_url, live_url, error, updated_at, open_url, and clarification (question and choices) or null. A live URL from an earlier publication is not proof a new publication succeeded; check publish_status.
+
+### `edit_site`
+
+Edit an existing landing page or webapp, or answer its clarification. Uses credits (minimum balance 100); poll `get_site`. Legacy sites use their editor link.
+
+Annotations: write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `site_id` | string, 1 to 200 characters | required | none | Site id from `list_sites`. |
+| `instruction` | string, 1 to 4000 characters | required | none | The user's change or clarification answer. |
+
+Returns site_id, workspace_id, status and next_step. Editing does not publish.
+
+### `publish_existing_site`
+
+Make an existing landing page or webapp public by site id. Only when the user asks. Poll `get_site` until publish_status is terminal; show failures.
+
+Annotations: destructive, write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `site_id` | string, 1 to 200 characters | required | none | Site id from `list_sites`. |
+| `slug` | string, up to 63 characters | optional | none | Lowercase letters and digits separated by single dashes. |
+
+Returns site_id, workspace_id, status and next_step. Legacy builders remain managed through their editor.
+
+### `get_campaign_report`
+
+Read a selected-account campaign's daily synced performance. Missing data is not zero: check reporting_complete. Meta action types can overlap; do not add different action types into one conversion count.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `platform` | string | required | none | `meta`, `google_ads`, `tiktok`. |
+| `campaign_id` | string, 1 to 200 characters | required | none | Campaign id from `list_campaigns`. |
+| `days` | integer | optional | `30` | `7`, `30`, `90`; account-calendar days. |
+
+Returns workspace_id, campaign_id, platform, name, status, currency, open_url, range (from, to, timezone), reporting_complete, totals (spend, clicks, impressions, ctr_percent, cpc) or null, daily (date, spend, impressions, clicks, conversions or null, synced_at), actions (date, action, value), and note. Currency amounts are major units. Partial totals cover only returned rows.
+
+### `set_campaign_status`
+
+Pause or resume an existing campaign in the selected brand and ad account. Resuming spends the campaign's current budget. Only use the status the user requested. This is separate from cancelling the MCP job that created it.
+
+Annotations: destructive, write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `platform` | string | required | none | `meta`, `google_ads`, `tiktok`. |
+| `campaign_id` | string, 1 to 200 characters | required | none | Campaign id from `list_campaigns`. |
+| `status` | string | required | none | `active`, `paused`. |
+
+Returns workspace_id, campaign_id, platform, status and open_url after provider confirmation. If the response is uncertain, inspect the campaign before retrying the same status.

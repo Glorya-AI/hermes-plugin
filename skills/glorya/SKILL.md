@@ -1,13 +1,13 @@
 ---
 name: glorya
-description: Make on-brand image ads, video ads, landing pages and websites with Glorya in Hermes. Use it whenever the user asks for an ad, a video ad, a landing page or a website for their brand, or mentions Glorya.
+description: Make on-brand ads and sites, launch campaigns, manage existing sites and campaigns, and recover Glorya jobs in Hermes. Use it whenever the user asks for marketing work, campaign reports or changes, brand switching, or mentions Glorya.
 ---
 
 # Glorya in Hermes
 
 Glorya is an AI marketing agent that already knows the user's brand: logo, colors, fonts, products and language. In Hermes, the Glorya plugin follows each job in the background and reports in the chat by itself. You start the work and step back.
 
-Every MCP tool, input, status, error and limit is in [references/tools.md](references/tools.md). In Hermes, `create_campaign` and `publish_site` always wait for the user's OK in Hermes' approval prompt, even where tools.md says Glorya launches without asking.
+Every MCP tool, input, status, error and limit is in [references/tools.md](references/tools.md). In Hermes, `create_campaign`, `publish_site`, `publish_existing_site` and `set_campaign_status` use Hermes' approval hooks. Honor the user's answer and any saved Hermes approval rule, even where tools.md describes autonomous server behavior.
 
 ## Connect
 
@@ -55,14 +55,17 @@ Pass the error message and its link on; don't retry in a loop.
 ## Campaigns
 
 - "Run ads for …", "launch a campaign": call `create_campaign` with the user's words as `brief`. Set `platform`, `daily_budget`, `goal` or `destination` only when the user said them.
-- A campaign spends real money from the user's ad account. Hermes asks the user to approve every `create_campaign` call (platform and daily budget) before it runs; if they decline, say so in one line and stop. Set `review: true` only when the user also wants to see the ads before launch.
+- A campaign spends real money from the user's ad account. Hermes routes `create_campaign` through its approval rule (platform and daily budget); if the user declines, say so in one line and stop. Set `review: true` only when the user also wants to see the ads before launch.
 - Default budget is 30 a day in the ad account's currency (TikTok 50). `integration_required`: share `connect_url` so the user connects the ad account.
-- "How are my ads doing?": `list_campaigns`. Connected ad accounts: `get_integrations`.
+- "How are my ads doing?": `list_campaigns`, then `get_campaign_report` for daily results and sync completeness. Missing or partial data is not zero performance. Connected ad accounts: `get_integrations`.
+- Use `set_campaign_status` only for an explicit pause or resume request; resuming spends the campaign's existing budget. `cancel_job` stops an MCP run but does not pause a live campaign.
+- On campaign failure or uncertain launch, inspect the existing campaign and job before retrying. Do not start a replacement or assume existing ads stopped.
 
 ## Credits and pages
 
 - "How many credits do I have?": `get_credits`. Share `billing_url` to top up, or `checkout_url` when there is no plan.
-- Their landing pages and websites: `list_sites`.
+- Their landing pages and websites: `list_sites`. For an existing site id, use `get_site`, `edit_site` or `publish_existing_site` with the selected workspace. Relay clarification questions and send the user's answer with `edit_site`.
+- Existing-site operations are not MCP jobs: poll `get_site`, never attach their platform thread to the job follower. Publication needs an explicit user request and Hermes approval. A prior live URL does not prove a new publish succeeded; check `publish_status`. Legacy builders retain their editor link.
 
 ## Never
 
