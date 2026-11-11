@@ -95,12 +95,15 @@ def parse_tool_result(result: Any) -> Optional[dict[str, Any]]:
 class Glorya:
     """The MCP tools, by name. Every method returns the tool's JSON object or raises ``GloryaError``."""
 
-    def __init__(self, ctx: Any, server: str):
+    def __init__(self, ctx: Any, server: str, workspace: str = ""):
         self._ctx = ctx
         self.server = server
+        self.workspace = workspace
 
     def call(self, tool: str, arguments: Optional[dict[str, Any]] = None, timeout: float = 30) -> dict[str, Any]:
         args = {key: value for key, value in (arguments or {}).items() if value not in (None, "", [])}
+        if self.workspace and tool in {*CREATE_TOOLS.values(), "get_brand", "get_credits", "get_integrations", "list_sites", "list_campaigns", "list_assets", "list_jobs"}:
+            args.setdefault("workspace", self.workspace)
         try:
             envelope = self._ctx.call_mcp(self.server, tool, args, timeout=timeout)
         except PermissionError:
