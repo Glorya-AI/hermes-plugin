@@ -15,12 +15,15 @@ The tools come from the Glorya MCP server (`mcp__glorya__*`, `https://platform.g
 
 ## Rules
 
-- Use the default brand: leave `workspace` empty. Only when the user names another brand, call `list_workspaces` with `query` set to that name and pass the matching `id` as `workspace`.
+- Use the default brand until the user switches. Respect the selected workspace in the plugin context; resolve a different brand uniquely with `list_workspaces` and pass its `id` as `workspace` on every subsequent brand-specific call in this conversation. Disambiguate duplicate names. Existing jobs stay with their `job_id`.
+- `/glorya switch <brand name or workspace id>` saves the selection per conversation and MCP server; `/glorya switch default` resets it. Create commands accept `--workspace <id>` for a one-call override.
 - Start right away. Pass the user's own words as `brief`. With no details, pass what they asked for, such as "Create an image ad".
 - Ask nothing before you start: not the format, size, language, audience or style. Glorya picks these.
 - Set `language`, `format` or `references` only when the user gave them. `references` are public https links.
 - Leave `review` out. Set `review: true` only when the user asks to review or approve steps ("let me review", "show me the script first").
 - Never invent products, prices or offers. Never start the same job twice.
+- Give every create request an `idempotency_key`; reuse it with unchanged inputs and the same brand after a lost response. On `creation_pending` or `creation_uncertain`, retain recovery IDs and never create a replacement with a new key. Recover remote job IDs with `list_jobs`; use `get_job` for current outcomes.
+- Slash creates retain their request key on uncertainty. The user can retry with `--request <key>` and the same brand, brief and flags, or use `/glorya jobs remote [cursor]` then `/glorya follow <job id>` to recover tracking.
 
 ## After you start a job
 
