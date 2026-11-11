@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shlex
+from uuid import uuid4
 from typing import Any, Optional
 
 from . import render
@@ -18,6 +19,7 @@ USAGE = """Glorya — on-brand ads and pages, followed right here.
   /glorya credits                credits left and your plan
   /glorya campaigns | sites      your campaigns with spend, your pages and sites
   /glorya jobs                   jobs in this chat
+  /glorya jobs remote [cursor]   recover jobs and pending starts for this brand
   /glorya status [job]           a job's state
   /glorya answer [job] [answer]  answer Glorya's open question
   /glorya refine [job] <change>  change a result
@@ -26,7 +28,8 @@ USAGE = """Glorya — on-brand ads and pages, followed right here.
   /glorya follow <job>           follow a job here
   /glorya switch <brand or id>    select a brand for this chat; default resets it
   /glorya brand | formats        your brand, the video styles
-[job] is the 8-character id from /glorya jobs; it defaults to this chat's latest job."""
+[job] is the 8-character id from /glorya jobs; it defaults to this chat's latest job.
+Create commands accept --workspace <id> and --request <idempotency key> for a safe retry."""
 
 CREATE_ALIASES = {
     "image": "image_ad", "img": "image_ad", "video": "video_ad", "vid": "video_ad",
@@ -61,8 +64,8 @@ def _flags(text: str) -> tuple[dict[str, Any], str]:
             skip = True
         elif word.startswith("--format="):
             options["format"] = word.split("=", 1)[1].strip().lower().replace("-", "_")
-        elif word in ("--platform", "--budget", "--workspace") and index + 1 < len(words):
-            options[word[2:]] = words[index + 1].strip()
+        elif word in ("--platform", "--budget", "--workspace", "--request") and index + 1 < len(words):
+            options["idempotency_key" if word == "--request" else word[2:]] = words[index + 1].strip()
             skip = True
         else:
             kept.append(word)
@@ -147,13 +150,36 @@ class Commands:
                                                 [{"value": "yes", "label": "Start"}, {"value": "no", "label": "Not now"}])
             if picked != "yes":
                 return "No campaign started."
-        ref = self.plugin.glorya(session_key).create(kind, brief[:4000], **options)
+        client = self.plugin.glorya(session_key)
+        options.setdefault("idempotency_key", str(uuid4()))
+        try:
+            ref = client.create(kind, brief[:4000], **options)
+        except GloryaError as error:
+            if error.code not in {"creation_uncertain", "creation_pending", "mcp_unavailable", "upstream_error", "bad_response"}:
+                raise
+            workspace = options.get("workspace") or client.workspace
+            brand_flag = f" --workspace {workspace}" if workspace else ""
+            return (render.failure(error) + "\nCheck /glorya jobs remote before starting another job."
+                    + f"\nFor a retry, keep the same brand, brief and flags and add --request {options['idempotency_key']}{brand_flag}.")
         if not self.plugin.store.get(str(ref.get("job_id") or "")):
             self.plugin.store.track(str(ref.get("job_id")), kind=kind, title=render.clip(brief, 60),
                                     open_url=str(ref.get("open_url") or ""), source="command")
         return f"{render.headline(kind)} started.{self._follow(ref, kind, title=render.clip(brief, 60))}"
 
     def cmd_jobs(self, rest: str, session_key: str) -> str:
+        verb, cursor = _split(rest)
+        if verb == "remote":
+            data = self.plugin.glorya(session_key).call("list_jobs", {"limit": 10, "cursor": cursor or None})
+            lines = [f"{job['job_id']} · {job.get('kind', '')} · {render.clip(job.get('title'), 60)}"
+                     for job in data.get("jobs") or []]
+            for pending in data.get("pending_starts") or []:
+                lines.append(f"Pending {pending.get('tool')}: request {pending.get('idempotency_key')}"
+                             + (f" · job {pending['job_id']}" if pending.get("job_id") else ""))
+            if data.get("next_cursor"):
+                lines.append(f"More: /glorya jobs remote {data['next_cursor']}")
+            if lines:
+                lines.append("Use /glorya follow <job id> to check and follow a recovered job.")
+            return "\n".join(lines) or "No remote Glorya jobs or pending starts for this brand."
         everywhere = rest.strip().lower() == "all"
         jobs = self.plugin.store.recent(session_key="" if everywhere else session_key, limit=10)
         if not jobs:

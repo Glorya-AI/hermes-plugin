@@ -62,7 +62,7 @@ Returns `workspace_id` and `ad_platforms` (each with `platform` `meta`, `google_
 
 ### `list_video_formats`
 
-The video styles Glorya can make, with preview clips. Call it when the user asks which styles exist, or to find the `id` of a style the user named.
+Every supported video style, including Launch Video. Preview fields are empty strings when no catalog clip exists; selecting the style still locks the format. Call it when the user asks which styles exist, or to find the `id` of a style the user named.
 
 Annotations: read-only.
 
@@ -126,6 +126,20 @@ Annotations: read-only.
 | `limit` | integer, 1 to 20 | optional | `10` | How many campaigns to return. |
 
 Returns `workspace_id`, `range` (`days`, `since`, `until`) and `campaigns`, highest spend first (each with `platform`, `id`, `name`, `status`, `objective`, `daily_budget`, `currency`, `spend`, `impressions`, `clicks`, `results`, `cost_per_result`, `open_url`).
+
+### `list_jobs`
+
+Recover the selected brand's MCP jobs, newest activity first. Call `get_job` for current status. Existing jobs keep their original brand.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `limit` | integer, 1 to 20 | optional | `10` | Page size. |
+| `cursor` | string, 1 to 1000 characters | optional | none | Opaque `next_cursor` from the previous page. |
+
+Returns `workspace_id`, `jobs` (job_id, kind, title, workspace_id, created_at, updated_at, open_url), `next_cursor` or null, and up to 20 `pending_starts` for this user and OAuth client (request_id, idempotency_key, job_id if known, tool, created_at). An unconfirmed start is not permission to start a replacement. Reuse its original key and inputs.
 
 ## Create tools
 

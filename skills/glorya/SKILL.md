@@ -22,6 +22,8 @@ The tools come from the Glorya MCP server (`mcp__glorya__*`, `https://platform.g
 - Set `language`, `format` or `references` only when the user gave them. `references` are public https links.
 - Leave `review` out. Set `review: true` only when the user asks to review or approve steps ("let me review", "show me the script first").
 - Never invent products, prices or offers. Never start the same job twice.
+- Give every create request an `idempotency_key`; reuse it with unchanged inputs and the same brand after a lost response. On `creation_pending` or `creation_uncertain`, retain recovery IDs and never create a replacement with a new key. Recover remote job IDs with `list_jobs`; use `get_job` for current outcomes.
+- Slash creates retain their request key on uncertainty. The user can retry with `--request <key>` and the same brand, brief and flags, or use `/glorya jobs remote [cursor]` then `/glorya follow <job id>` to recover tracking.
 
 ## After you start a job
 

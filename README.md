@@ -137,3 +137,12 @@ MIT
 ### Switch brands within a conversation
 
 Use `/glorya switch <brand name or workspace id>` to remember a brand for this chat. Duplicate names are listed with workspace and organization IDs; choose the exact ID. `/glorya switch default` resets to the OAuth default. Creation commands accept `--workspace <id>` for a one-call override. The selected brand is stored per MCP server and conversation, survives plugin restarts, and never changes the workspace of an existing job. Natural-language calls receive the selected workspace in their conversation context.
+
+### Recovering a start after a lost response
+
+Slash create commands send an idempotency key before dispatch. If the response is uncertain,
+the command shows that key; use `--request <key>` with the same brand, brief and flags to retry.
+The plugin never automatically resubmits an uncertain create. Use `/glorya jobs remote` to
+find server-side job IDs and pending starts for the selected brand, then `/glorya follow <job id>`.
+Pagination uses `/glorya jobs remote <cursor>`. Local `/glorya jobs` remains scoped to this chat.
+This recovery support requires the MCP server's durable-create and `list_jobs` releases.
